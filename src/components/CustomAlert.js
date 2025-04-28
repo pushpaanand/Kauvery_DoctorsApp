@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, Modal, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
-import { theme } from '../../utils/theme';
+import { theme } from '../utils/theme';
 
 // Replace these with your website's theme colors and font
 const themeColors = {

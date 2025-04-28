@@ -17,6 +17,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useDispatch } from 'react-redux';
 import { authService } from '../api/services/authService';
 import { setToken, setUser, setLoading, setError } from '../store/slices/authSlice';
+import SplashScreen from './SplashScreen';
 
 const { width } = Dimensions.get('window');
 
@@ -30,6 +31,7 @@ const LoginScreen = ({ navigation }) => {
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isVisible, setIsVisible] = useState(false);
 
   const handleLogin = async () => {
     console.log('handleLogin');
@@ -47,7 +49,14 @@ const LoginScreen = ({ navigation }) => {
       console.log(loginResponse);
       if (loginResponse) {
         dispatch(setUser(loginResponse));
-        navigation.replace('Dashboard');
+        setIsVisible(true);
+
+        const timer = setTimeout(() => {
+          setIsVisible(false);
+        }, 3000); 
+    
+        return () => {clearTimeout(timer),    navigation.replace('Dashboard')};
+    ;
       }
     } catch (error) {
       setError(error.message);
@@ -58,7 +67,8 @@ const LoginScreen = ({ navigation }) => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+<>
+{isVisible?<SplashScreen/>:    <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -166,7 +176,8 @@ const LoginScreen = ({ navigation }) => {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </SafeAreaView>}
+</>
   );
 };
 

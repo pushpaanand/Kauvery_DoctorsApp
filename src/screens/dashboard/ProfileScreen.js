@@ -5,7 +5,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
-import { theme } from '../../../utils/theme';
+import { theme } from '../../utils/theme';
 import CustomAlert from '../../components/CustomAlert';
 
 const { width, height } = Dimensions.get('window');
@@ -84,7 +84,7 @@ export default function ProfileScreen() {
         <View style={styles.profileSection}>
           <View style={styles.profileHeader}>
             <Image
-              source={require('../../../assets/doctor.png')}
+              source={require('../../assets/images/doctor.png')}
               style={styles.profileImage}
             />
             <View style={styles.profileInfo}>

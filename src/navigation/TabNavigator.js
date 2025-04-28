@@ -1,13 +1,13 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { theme } from '../../utils/theme';
 
 import HomeScreen from '../screens/dashboard/HomeScreen';
 import PatientsScreen from '../screens/dashboard/PatientsScreen';
 import ScheduleScreen from '../screens/dashboard/ScheduleScreen';
 import InPatientsScreen from '../screens/dashboard/InPatientsScreen';
 import ProfileScreen from '../screens/dashboard/ProfileScreen';
+import { theme } from '../utils/theme';
 
 const Tab = createBottomTabNavigator();
 

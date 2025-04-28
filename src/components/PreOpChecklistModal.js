@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, Dimensions, ScrollView, TouchableOpacity } from 'react-native';
 import { Modal, Portal, Text, IconButton } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { theme } from '../../utils/theme';
-import { typography } from '../../utils/typography';
+import { typography } from '../utils/typography';
+import { theme } from '../utils/theme';
 
 const { width, height } = Dimensions.get('window');
 

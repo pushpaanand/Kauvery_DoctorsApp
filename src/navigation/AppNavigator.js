@@ -1,11 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { NavigationContainer } from '@react-navigation/native';
-import { createStackNavigator } from '@react-navigation/stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import LoginScreen from '../screens/LoginScreen';
 import OnboardingScreen from '../screens/OnboardingScreen';
 
-const Stack = createStackNavigator();
 
 const AppNavigator = () => {
   const [isFirstLaunch, setIsFirstLaunch] = useState(false);
@@ -32,21 +29,17 @@ const AppNavigator = () => {
     return null; // Or a loading screen
   }
 
+  console.log(isFirstLaunch)
   return (
-    <NavigationContainer>
-      <Stack.Navigator 
-        screenOptions={{
-          headerShown: false,
-          cardStyle: { backgroundColor: 'white' }
-        }}
-      >
+
+      <>
         {isFirstLaunch ? (
-          <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+          <OnboardingScreen setIsFirstLaunch={setIsFirstLaunch} />
         ) : (
-          <Stack.Screen name="Login" component={LoginScreen} />
+          <LoginScreen />
         )}
-      </Stack.Navigator>
-    </NavigationContainer>
+      </>
+    
   );
 };
 

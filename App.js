@@ -6,7 +6,6 @@ import { Provider as PaperProvider, Portal } from 'react-native-paper';
 import { IconButton } from 'react-native-paper';
 import * as Notifications from 'expo-notifications';
 import { View, Image, StyleSheet, Text } from 'react-native';
-import LogoutButton from './components/LogoutButton';
 import { theme } from './src/utils/theme';
 import TabNavigator from './src/navigation/TabNavigator';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -18,26 +17,27 @@ import { store } from './src/store/store';
 import LoginScreen from './src/screens/LoginScreen';
 
 // Workflow Screens
-import NewProposalScreen from './screens/workflows/NewProposalScreen';
-import NegotiationScreen from './screens/workflows/NegotiationScreen';
-import MouDocumentScreen from './screens/workflows/MouDocumentScreen';
-import TariffRenewalScreen from './screens/workflows/TariffRenewalScreen';
+import NewProposalScreen from './src/screens/workflows/NewProposalScreen'
+import NegotiationScreen from './src/screens/workflows/NegotiationScreen';
+import MouDocumentScreen from './src/screens/workflows/MouDocumentScreen';
+import TariffRenewalScreen from './src/screens/workflows/TariffRenewalScreen';
 
 // Review Screens
-import DocumentReviewScreen from './screens/review/DocumentReviewScreen';
-import NegotiationReviewScreen from './screens/review/NegotiationReviewScreen';
+import DocumentReviewScreen from './src/screens/review/DocumentReviewScreen';
+import NegotiationReviewScreen from './src/screens/review/NegotiationReviewScreen';
 
 // Approval Screens
-import FinalApprovalScreen from './screens/approval/FinalApprovalScreen';
+import FinalApprovalScreen from './src/screens/approval/FinalApprovalScreen';
 
 // Notification Screen
-import NotificationsScreen from './screens/NotificationsScreen';
+import NotificationsScreen from './src/screens/NotificationsScreen';
 
 // Reviewer Screens
-import ReviewerDashboardScreen from './screens/reviewer/ReviewerDashboardScreen';
+import ReviewerDashboardScreen from './src/screens/reviewer/ReviewerDashboardScreen';
 
 // Approver Screens
-import ApproverDashboardScreen from './screens/approver/ApproverDashboardScreen';
+import ApproverDashboardScreen from './src/screens/approver/ApproverDashboardScreen';
+import AppNavigator from './src/navigation/AppNavigator';
 
 const Stack = createStackNavigator();
 
@@ -53,7 +53,7 @@ Notifications.setNotificationHandler({
 const DashboardLogoTitle = () => (
   <View style={styles.headerContainer}>
     <Image
-      source={require('./assets/logo.png')}
+      source={require('./src/assets/images/logo.png')}
       style={styles.headerLogo}
     />
   </View>
@@ -66,10 +66,10 @@ const SimpleTitle = ({ title }) => (
 
 export default function App() {
   const [fontsLoaded] = useFonts({
-    'Poppins-Regular': require('./assets/fonts/Poppins-Regular.ttf'),
-    'Poppins-Medium': require('./assets/fonts/Poppins-Medium.ttf'),
-    'Poppins-SemiBold': require('./assets/fonts/Poppins-SemiBold.ttf'),
-    'Poppins-Bold': require('./assets/fonts/Poppins-Bold.ttf'),
+    'Poppins-Regular': require('./src/assets/fonts/Poppins/Poppins-Regular.ttf'),
+    'Poppins-Medium': require('./src/assets/fonts/Poppins/Poppins-Medium.ttf'),
+    'Poppins-SemiBold': require('./src/assets/fonts/Poppins/Poppins-SemiBold.ttf'),
+    'Poppins-Bold': require('./src/assets/fonts/Poppins/Poppins-Bold.ttf'),
   });
 
   if (!fontsLoaded) {
@@ -83,15 +83,17 @@ export default function App() {
           <Portal.Host>
             <NavigationContainer>
               <Stack.Navigator 
-                initialRouteName="Login"
+                initialRouteName="AppNavigator"
                 screenOptions={{
                   headerShown: false,
                 }}
               >
+         
                 <Stack.Screen 
-                  name="Login" 
-                  component={LoginScreen}
+                  name="AppNavigator" 
+                  component={AppNavigator}
                 />
+              
 
                 <Stack.Screen 
                   name="Dashboard" 

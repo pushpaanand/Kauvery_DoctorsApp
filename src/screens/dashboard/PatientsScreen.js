@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { View, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, Dimensions, Platform, StatusBar } from 'react-native';
 import { Text, Searchbar, Card } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { theme } from '../../../utils/theme';
+import { theme } from '../../utils/theme';
 import { useSelector } from 'react-redux';
 import { patientService } from '../../api/services/patientService';
 

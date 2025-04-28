@@ -3,8 +3,8 @@ import { View, StyleSheet, ScrollView, TouchableOpacity, Dimensions } from 'reac
 import { Text, Searchbar, Card } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { theme } from '../../../utils/theme';
-import { typography } from '../../../utils/typography';
+import { theme } from '../../utils/theme';
+import { typography } from '../../utils/typography';
 import PreOpChecklistModal from '../../components/PreOpChecklistModal';
 import { useSelector } from 'react-redux';
 import { patientService } from '../../api/services/patientService';

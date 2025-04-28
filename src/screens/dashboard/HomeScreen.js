@@ -2,8 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, Dimensions, Image, Platform, StatusBar } from 'react-native';
 import { Text, Searchbar, Card } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { theme } from '../../../utils/theme';
 import { useSelector } from 'react-redux';
+import { theme } from '../../utils/theme';
 
 const STATUSBAR_HEIGHT = Platform.OS === 'ios' ? 44 : StatusBar.currentHeight;
 const { width, height } = Dimensions.get('window');
@@ -375,7 +375,7 @@ export default function HomeScreen() {
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.logoContainer}>
-            <Image source={require('../../../assets/logo.png')} style={styles.logo} />
+            <Image source={require('../../assets/images/logo.png')} style={styles.logo} />
           </View>
           <TouchableOpacity>
             <MaterialCommunityIcons name="bell-outline" size={24} color="#666" />
