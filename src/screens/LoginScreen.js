@@ -32,10 +32,8 @@ const LoginScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [isVisible, setIsVisible] = useState(false);
-
   const handleLogin = async () => {
     console.log('handleLogin');
-    // Basic validation
     if (!credentials.Username || !credentials.Password) {
       Alert.alert('Error', 'Please enter both username and password');
       return;
@@ -46,18 +44,21 @@ const LoginScreen = ({ navigation }) => {
 
     try {
       const loginResponse = await authService.login(credentials);
-      console.log(loginResponse);
       if (loginResponse) {
         dispatch(setUser(loginResponse));
         setIsVisible(true);
 
         const timer = setTimeout(() => {
           setIsVisible(false);
-        }, 3000); 
+      
+        }, 10000); 
     
-        return () => {clearTimeout(timer),    navigation.replace('Dashboard')};
-    ;
+       clearTimeout(timer)
+    
+ 
       }
+      navigation.navigate('Dashboard') 
+
     } catch (error) {
       setError(error.message);
       Alert.alert('Login Failed', error.message);
@@ -68,7 +69,7 @@ const LoginScreen = ({ navigation }) => {
 
   return (
 <>
-{isVisible?<SplashScreen/>:    <SafeAreaView style={styles.container}>
+{isVisible?<SplashScreen/>: <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -176,7 +177,8 @@ const LoginScreen = ({ navigation }) => {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>}
+    </SafeAreaView>}  
+
 </>
   );
 };

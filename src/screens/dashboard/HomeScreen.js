@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, Dimensions, Image, Platform, StatusBar } from 'react-native';
+import { View, StyleSheet, SafeAreaView, ActivityIndicator, ScrollView, TouchableOpacity, Dimensions, Image, Platform, StatusBar } from 'react-native';
 import { Text, Searchbar, Card } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSelector } from 'react-redux';
@@ -26,32 +26,38 @@ const COLORS = {
     primary: '#333333',
     secondary: '#666666',
     light: '#999999'
+  },
+  appoinments: {
+    waiting: '#ff8c00',
+    complete: '#32cd32',
+    inprogress: '#ff8c00',
+    scheduled: '#0000ff'
   }
 };
 
 // Update the DoctorTypeCard component for a more compact design
 const DoctorTypeCard = ({ icon, title, count, color }) => (
-  <TouchableOpacity 
-    style={[styles.statCard, { 
+  <TouchableOpacity
+    style={[styles.statCard, {
       backgroundColor: '#FFFFFF',
-      borderColor: color,
+      borderColor: '#eee',
     }]}
   >
     <View style={styles.statCardContent}>
       <View style={[styles.iconContainer, { backgroundColor: `${color}15` }]}>
-        <MaterialCommunityIcons 
-          name={icon} 
-          size={22} 
-          color={color} 
+        <MaterialCommunityIcons
+          name={icon}
+          size={22}
+          color={color}
         />
       </View>
       {/* <View style={styles.statTextContainer}> */}
-        <Text style={styles.statCount}>{count}</Text>
-        
-        </View>
-        <Text style={styles.statTitle}>{title}</Text>
-      {/* </View> */}
-    
+      <Text style={styles.statCount}>{count}</Text>
+
+    </View>
+    <Text style={styles.statTitle}>{title}</Text>
+    {/* </View> */}
+
   </TouchableOpacity>
 );
 
@@ -63,7 +69,7 @@ const ProgressBar = ({ current, total }) => (
       <Text style={styles.progressCount}>{current}/{total}</Text>
     </View>
     <View style={styles.progressBarContainer}>
-      <View style={[styles.progressBar, { width: `${(current/total) * 100}%` }]} />
+      <View style={[styles.progressBar, { width: `${(current / total) * 100}%` }]} />
     </View>
   </View>
 );
@@ -72,13 +78,13 @@ const ProgressBar = ({ current, total }) => (
 const getTodayBasedAppointments = () => {
   const appointments = {};
   const today = new Date();
-  
+
   // Add appointments for today and next 5 days
   for (let i = 0; i < 6; i++) {
     const date = new Date(today);
     date.setDate(today.getDate() + i);
     const dateString = date.toISOString().split('T')[0];
-    
+
     // Ensure at least some dates have appointments
     if (i === 0 || i === 2 || i === 4) { // Today, day after tomorrow, and 4th day
       appointments[dateString] = Math.floor(Math.random() * 3) + 1; // 1-3 appointments
@@ -86,7 +92,7 @@ const getTodayBasedAppointments = () => {
       appointments[dateString] = Math.floor(Math.random() * 2); // 0-1 appointments
     }
   }
-  
+
   return appointments;
 };
 
@@ -94,28 +100,31 @@ const SAMPLE_APPOINTMENTS = getTodayBasedAppointments();
 
 // Keep DateItem component outside
 const DateItem = ({ day, date, isSelected, hasAppointments, isToday, onPress }) => (
-  <TouchableOpacity 
+  <TouchableOpacity
     style={[
-      styles.dateItem, 
+      styles.dateItem,
       isSelected && styles.selectedDateItem,
       isToday && styles.todayDateItem
     ]}
     onPress={onPress}
   >
     <Text style={[
-      styles.dayText, 
+      styles.dayText,
       isSelected && styles.selectedDayText,
       isToday && styles.todayText
     ]}>
       {day}
     </Text>
-    <Text style={[
-      styles.dateNumber, 
+    <View style={[
+      styles.dateNumber,
       isSelected && styles.selectedDateNumber,
       isToday && styles.todayText
     ]}>
-      {date}
-    </Text>
+      <Text style={styles.date}>
+        {date}
+      </Text>
+    </View>
+
     {hasAppointments && <View style={[
       styles.appointmentDot,
       (isSelected || isToday) && styles.selectedAppointmentDot
@@ -123,7 +132,7 @@ const DateItem = ({ day, date, isSelected, hasAppointments, isToday, onPress }) 
   </TouchableOpacity>
 );
 
-export default function HomeScreen() {
+export default function HomeScreen({navigation}) {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [dateRange, setDateRange] = useState(new Date());
   const [searchQuery, setSearchQuery] = React.useState('');
@@ -131,7 +140,7 @@ export default function HomeScreen() {
   const [inPatients, setInPatients] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  
+
   // Update the sample data to include visit counts
   const SAMPLE_DATA = {
     outPatients: [
@@ -245,15 +254,15 @@ export default function HomeScreen() {
   const generateWeekDays = () => {
     const days = [];
     const startDate = new Date(dateRange);
-    
+
     for (let i = 0; i < 7; i++) {
       const date = new Date(startDate);
       date.setDate(startDate.getDate() + i);
       const dateString = date.toISOString().split('T')[0];
-      
+
       const hasAppts = SAMPLE_APPOINTMENTS[dateString] > 0;
       console.log('Date:', dateString, 'Appointments:', SAMPLE_APPOINTMENTS[dateString], 'Has Appointments:', hasAppts);
-      
+
       days.push({
         date: date.getDate(),
         day: date.toLocaleDateString('en-US', { weekday: 'short' }),
@@ -285,25 +294,27 @@ export default function HomeScreen() {
   };
 
   const renderDoctorTypeCards = () => {
-    const doctorType = user?.['Doctor Type'] || 'GENERAL';
+    // const doctorType = user?.['Doctor Type'] || 'GENERAL';
+    const doctorType = 'SURGERY' || 'GENERAL';
 
+    console.log(doctorType)
     switch (doctorType) {
       case 'SURGERY':
         return (
           <View style={styles.cardsContainer}>
-            <DoctorTypeCard 
+            <DoctorTypeCard
               icon="account-group"
               title="Out Patients"
               count="24"
               color={COLORS.primary}
             />
-            <DoctorTypeCard 
+            <DoctorTypeCard
               icon="bed"
               title="In Patients"
               count="12"
               color={COLORS.primary}
             />
-            <DoctorTypeCard 
+            <DoctorTypeCard
               icon="medical-bag"
               title="Surgeries"
               count="3"
@@ -311,17 +322,17 @@ export default function HomeScreen() {
             />
           </View>
         );
-      
+
       case 'INPATIENT':
         return (
           <View style={styles.cardsContainer}>
-            <DoctorTypeCard 
+            <DoctorTypeCard
               icon="account-group"
               title="Out Patients"
               count={outPatients.length}
               color={COLORS.primary}
             />
-            <DoctorTypeCard 
+            <DoctorTypeCard
               icon="calendar-check"
               title="Appointments"
               count="8"
@@ -329,25 +340,25 @@ export default function HomeScreen() {
             />
           </View>
         );
-      
+
       case 'OUTPATIENT':
         return (
           <View>
             <View style={styles.cardsContainer}>
-              <DoctorTypeCard 
+              <DoctorTypeCard
                 icon="account-group"
                 title="Out Patients"
                 count={SAMPLE_DATA.visitCounts.total}
                 color={COLORS.primary}
               />
             </View>
-            <ProgressBar 
-              current={SAMPLE_DATA.visitCounts.completed} 
-              total={SAMPLE_DATA.visitCounts.total} 
+            <ProgressBar
+              current={SAMPLE_DATA.visitCounts.completed}
+              total={SAMPLE_DATA.visitCounts.total}
             />
           </View>
         );
-      
+
       default:
         return null;
     }
@@ -355,8 +366,8 @@ export default function HomeScreen() {
 
   if (loading) {
     return (
-      <View style={styles.container}>
-        <Text>Loading...</Text>
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#962067" />
       </View>
     );
   }
@@ -389,16 +400,18 @@ export default function HomeScreen() {
         </View>
 
         {/* Search Bar */}
-        <Searchbar
-          placeholder="Search patients, appointments..."
-          onChangeText={setSearchQuery}
-          value={searchQuery}
-          style={styles.searchBar}
-          inputStyle={styles.searchInput}
-          placeholderTextColor="#999"
-          icon={() => <MaterialCommunityIcons name="magnify" size={24} color="#999" />}
-          iconColor="#999"
-        />
+        <View style={styles.searchContainer}>
+          <Searchbar
+            placeholder="Search patients, appointments..."
+            onChangeText={setSearchQuery}
+            value={searchQuery}
+            style={styles.searchBar}
+            inputStyle={styles.searchInput}
+            placeholderTextColor="#999"
+            icon={() => <MaterialCommunityIcons name="magnify" size={24} color="#962067" />}
+            iconColor="#999"
+          />
+        </View>
 
         {/* Calendar Section */}
         <View style={styles.dateSection}>
@@ -411,15 +424,15 @@ export default function HomeScreen() {
               <MaterialCommunityIcons name="chevron-right" size={24} color={theme.colors.primary} />
             </TouchableOpacity>
           </View>
-          
-          <ScrollView 
-            horizontal 
+
+          <ScrollView
+            horizontal
             showsHorizontalScrollIndicator={false}
             style={styles.dateScrollView}
             contentContainerStyle={styles.dateScrollContent}
           >
             {generateWeekDays().map((item, index) => (
-              <DateItem 
+              <DateItem
                 key={index}
                 day={item.day}
                 date={item.date}
@@ -440,7 +453,7 @@ export default function HomeScreen() {
               <Text style={styles.viewAllText}>View All</Text>
             </TouchableOpacity>
           </View> */}
-          
+
           {renderDoctorTypeCards()}
         </View>
 
@@ -448,7 +461,7 @@ export default function HomeScreen() {
         <View style={styles.upcomingSection}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Upcoming</Text>
-            <TouchableOpacity>
+            <TouchableOpacity onPress={()=>{navigation.navigate('Schedule')}}>
               <Text style={styles.viewAllText}>View All</Text>
             </TouchableOpacity>
           </View>
@@ -476,7 +489,7 @@ export default function HomeScreen() {
                   </View>
                   <View style={styles.scheduleTag}>
                     <MaterialCommunityIcons name="clock-outline" size={14} color="#666" />
-                    <Text style={styles.scheduleText}>Scheduled on: {appointment.Appointment_Time}</Text>
+                    <Text style={styles.scheduleText}>Scheduled: {appointment.Appointment_Time}</Text>
                   </View>
                 </View>
               </Card.Content>
@@ -535,6 +548,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#f6f6f6',
     paddingTop: Platform.OS === 'android' ? STATUSBAR_HEIGHT : 0,
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -559,7 +577,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: width * 0.04,
     paddingVertical: height * 0.015,
     backgroundColor: '#fff',
-    marginBottom: height * 0.008,
+    // marginBottom: height * 0.008,
   },
   welcomeText: {
     fontFamily: 'Poppins-SemiBold',
@@ -572,10 +590,13 @@ const styles = StyleSheet.create({
     fontSize: Math.min(width * 0.038, 16),
     color: '#666',
   },
+  searchContainer: {
+    backgroundColor: '#fff'
+  },
   searchBar: {
-    marginHorizontal: width * 0.04,
-    marginVertical: height * 0.008,
-    backgroundColor: '#f5f5f5',
+    marginHorizontal: 15,
+    // marginVertical: height * 0.008,
+    backgroundColor: '#f7f7f7',
     elevation: 0,
     borderRadius: width * 0.02,
     height: height * 0.055,
@@ -630,11 +651,11 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   selectedDateItem: {
-    backgroundColor: theme.colors.primary,
-    borderColor: theme.colors.primary,
+    // backgroundColor: theme.colors.primary,
+    borderColor: 'transparent',
   },
   todayDateItem: {
-    borderColor: theme.colors.primary,
+    borderColor: 'transparent',
   },
   dayText: {
     fontFamily: 'Poppins-Regular',
@@ -645,20 +666,31 @@ const styles = StyleSheet.create({
   dateNumber: {
     fontFamily: 'Poppins-Medium',
     fontSize: Math.min(width * 0.036, 16),
-    color: '#333',
+    color: '#666',
+    margin: 5
   },
   selectedDayText: {
-    color: '#fff',
+    color: '#666',
   },
   selectedDateNumber: {
     color: '#fff',
+    backgroundColor: '#962067',
+    borderRadius: 50,
+    width: 30,
+    height: 30,
+    padding: 5,
+    marginBottom: 5
+
+  },
+  date: {
+    textAlign: 'center'
   },
   todayText: {
-    color: '#000',
+    color: '#666',
   },
   appointmentDot: {
-    width: 6,
-    height: 6,
+    width: 5,
+    height: 5,
     borderRadius: 3,
     backgroundColor: theme.colors.primary,
     position: 'absolute',
@@ -666,7 +698,7 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
   selectedAppointmentDot: {
-    backgroundColor: '#fff',
+    backgroundColor: '#962067',
   },
   overviewSection: {
     backgroundColor: '#fff',
@@ -692,27 +724,19 @@ const styles = StyleSheet.create({
   statCard: {
     width: width * 0.31,
     padding: width * 0.025,
-    borderRadius: 12,
     backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: COLORS.primary,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    borderRightWidth: 1,
+    borderColor: '#666',
   },
   statCardContent: {
     alignItems: 'center',
-    justifyContent: 'space-around',
+    justifyContent: 'center',
+    gap: 10,
     flexDirection: 'row',
   },
   iconContainer: {
     padding: width * 0.02,
-    borderRadius: 8,
+    borderRadius: 50,
     marginBottom: height * 0.008,
   },
   statTextContainer: {
@@ -777,7 +801,8 @@ const styles = StyleSheet.create({
   eventType: {
     fontFamily: 'Poppins-Medium',
     fontSize: Math.min(width * 0.032, 14),
-    color: theme.colors.primary,
+    fontWeight:'bold',
+    color: 'grey',
   },
   videoButton: {
     flexDirection: 'row',

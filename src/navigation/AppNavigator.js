@@ -4,9 +4,8 @@ import LoginScreen from '../screens/LoginScreen';
 import OnboardingScreen from '../screens/OnboardingScreen';
 
 
-const AppNavigator = () => {
+const AppNavigator = ({navigation}) => {
   const [isFirstLaunch, setIsFirstLaunch] = useState(false);
-
   useEffect(() => {
     checkIfFirstLaunch();
   }, []);
@@ -29,14 +28,13 @@ const AppNavigator = () => {
     return null; // Or a loading screen
   }
 
-  console.log(isFirstLaunch)
   return (
 
       <>
         {isFirstLaunch ? (
           <OnboardingScreen setIsFirstLaunch={setIsFirstLaunch} />
         ) : (
-          <LoginScreen />
+          <LoginScreen navigation={navigation}/>
         )}
       </>
     
