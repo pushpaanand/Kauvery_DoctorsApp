@@ -8,6 +8,7 @@ import { typography } from '../../utils/typography';
 import PreOpChecklistModal from '../../components/PreOpChecklistModal';
 import { useSelector } from 'react-redux';
 import { patientService } from '../../api/services/patientService';
+import PatientDocumentScreen from '../PatientDocumentScreen';
 
 const { width, height } = Dimensions.get('window');
 
@@ -20,67 +21,116 @@ const STATUS_COLORS = {
   'On Hold': '#FF5722',
 };
 
-const PatientCard = ({ patient }) => (
+const PatientCard = ({ patient, setPatientDocuments }) => (
   <View style={styles.patientCard}>
-    <View style={styles.patientMainInfo}>
+    <View>    <View style={styles.patientMainInfo}>
       <View style={styles.nameAndTime}>
         <Text style={styles.patientName}>{patient.name}</Text>
-        <Text style={styles.appointmentTime}>{patient.time}</Text>
-      </View>
-      <View style={styles.patientSubInfo}>
-        <Text style={styles.ageGender}>{patient.age} | {patient.gender}</Text>
         <Text style={styles.uhidText}>{patient.uhid}</Text>
       </View>
-    </View>
-    
-    <View style={styles.consultInfo}>
-      <View style={styles.leftSection}>
-        {patient.type && (
-          <Text style={styles.consultType}>{patient.type}</Text>
-        )}
-        {patient.referredBy && (
-          <Text style={styles.referredBy} numberOfLines={1}>
-            {patient.referredBy}
-          </Text>
-        )}
-        {patient.lastVisit && (
-          <Text style={styles.lastVisit}>{patient.lastVisit}</Text>
-        )}
+      <View style={styles.patientSubInfo}>
+        <View style={styles.time}>
+          <MaterialCommunityIcons name="account" size={15} color={'#666'} />
+          <Text style={styles.ageGender}>{patient.age} | {patient.gender}</Text>
+        </View>
+
+        <View style={styles.time}>
+          <MaterialCommunityIcons name="clock" size={15} color={'#666'} />
+          <Text style={styles.ageGender}>{patient.time}</Text>
+        </View>
+
       </View>
+    </View>
+
+
+      <View style={styles.statusSection}>
+        {patient.status === 'waiting' && (
+          <View style={styles.statusContainer}>
+            {/* <MaterialCommunityIcons name="clock-outline" size={16} color="#FFA500" /> */}
+            <Text style={[styles.statusText, { color: '#FFA500' }]}>
+              Waiting
+            </Text>
+            <View >
+              {patient.type && (
+                <Text style={styles.consultType}>{patient.type}</Text>
+              )}
+              {patient.referredBy && (
+                <Text style={styles.referredBy} numberOfLines={1}>
+                  {patient.referredBy}
+                </Text>
+              )}
+              {patient.lastVisit && (
+                <Text style={styles.lastVisit}>{patient.lastVisit}</Text>
+              )}
+            </View>
+          </View>
+        )}
+        {patient.status === 'completed' && (
+          <View style={styles.statusContainer}>
+            {/* <MaterialCommunityIcons name="check-circle" size={16} color="#4CAF50" /> */}
+            <Text style={[styles.statusText, { color: '#4CAF50' }]}>Completed</Text>
+            <View>
+              {patient.type && (
+                <Text style={styles.consultType}>{patient.type}</Text>
+              )}
+              {patient.referredBy && (
+                <Text style={styles.referredBy} numberOfLines={1}>
+                  {patient.referredBy}
+                </Text>
+              )}
+              {patient.lastVisit && (
+                <Text style={styles.lastVisit}>{patient.lastVisit}</Text>
+              )}
+            </View>
+          </View>
+        )}
+        {patient.status === 'onHold' && (
+          <View style={styles.statusContainer}>
+            {/* <MaterialCommunityIcons name="pause-circle" size={16} color="#FF5722" /> */}
+            <Text style={[styles.statusText, { color: '#FF5722' }]}>On Hold</Text>
+            <View>
+              {patient.type && (
+                <Text style={styles.consultType}>{patient.type}</Text>
+              )}
+              {patient.referredBy && (
+                <Text style={styles.referredBy} numberOfLines={1}>
+                  {patient.referredBy}
+                </Text>
+              )}
+              {patient.lastVisit && (
+                <Text style={styles.lastVisit}>{patient.lastVisit}</Text>
+              )}
+            </View>
+          </View>
+        )}
+        {!patient.status && <View >
+          {/* {patient.type && (
+          <Text style={styles.consultType}>{patient.type}</Text>
+        )} */}
+          {patient.referredBy && (
+            <Text style={styles.referredBy}>
+              {patient.referredBy}
+            </Text>
+          )}
+          {patient.lastVisit && (
+            <Text style={styles.lastVisit}>{patient.lastVisit}</Text>
+          )}
+        </View>}
+      </View></View>
+
+    <View style={styles.consultInfo}>
       <View style={styles.rightSection}>
         {patient.hasVideo && (
           <TouchableOpacity style={styles.iconButton}>
             <MaterialCommunityIcons name="video" size={20} color={theme.colors.primary} />
           </TouchableOpacity>
         )}
-        <TouchableOpacity style={styles.iconButton}>
+        <TouchableOpacity style={styles.iconButton} onPress={() => setPatientDocuments(patient)}>
           <MaterialCommunityIcons name="file-document-outline" size={20} color={theme.colors.primary} />
         </TouchableOpacity>
       </View>
     </View>
 
-    <View style={styles.statusSection}>
-      {patient.status === 'waiting' && (
-        <View style={styles.statusContainer}>
-          <MaterialCommunityIcons name="clock-outline" size={16} color="#FFA500" />
-          <Text style={[styles.statusText, { color: '#FFA500' }]}>
-            Waiting for {patient.waitingTime}
-          </Text>
-        </View>
-      )}
-      {patient.status === 'completed' && (
-        <View style={styles.statusContainer}>
-          <MaterialCommunityIcons name="check-circle" size={16} color="#4CAF50" />
-          <Text style={[styles.statusText, { color: '#4CAF50' }]}>Completed</Text>
-        </View>
-      )}
-      {patient.status === 'onHold' && (
-        <View style={styles.statusContainer}>
-          <MaterialCommunityIcons name="pause-circle" size={16} color="#FF5722" />
-          <Text style={[styles.statusText, { color: '#FF5722' }]}>On Hold</Text>
-        </View>
-      )}
-    </View>
   </View>
 );
 
@@ -121,11 +171,11 @@ const OTScheduleCard = ({ surgery }) => (
 
     <View style={styles.otActions}>
       {surgery.buttons.map((button, index) => (
-        <TouchableOpacity 
+        <TouchableOpacity
           key={index}
           style={[
             styles.otButton,
-            { 
+            {
               backgroundColor: button === 'View Details' ? '#fff' : theme.colors.primary,
               borderWidth: button === 'View Details' ? 1 : 0,
               borderColor: theme.colors.primary
@@ -154,15 +204,15 @@ export default function ScheduleScreen() {
   const [patients, setPatients] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState(null);
-
-  const user = useSelector(state => state.auth.user); 
+  const [patientDocuments, setPatientDocuments] = useState(null)
+  const user = useSelector(state => state.auth.user);
   const doctorId = user?.['Doctor Id'];
 
   useEffect(() => {
     const fetchPatients = async () => {
       setLoading(true);
       try {
-        const [outPatientsData] = await Promise.all([          
+        const [outPatientsData] = await Promise.all([
           patientService.getOutPatients(doctorId)
         ]);
 
@@ -198,7 +248,7 @@ export default function ScheduleScreen() {
     if (date.toDateString() === today.toDateString()) {
       return 'Today';
     }
-    return date.toLocaleDateString('en-US', { 
+    return date.toLocaleDateString('en-US', {
       day: '2-digit',
       month: 'short'
     });
@@ -222,7 +272,7 @@ export default function ScheduleScreen() {
       gender: 'Female',
       type: 'Follow-up',
       time: '02:30 PM',
-      referredBy: 'Referred by: Dr. kavitha assistant radiologist, Family Me...'
+      referredBy: 'Referred by: Dr. kavitha '
     },
     {
       name: 'Vikram S',
@@ -333,18 +383,24 @@ export default function ScheduleScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.header}>
-        <TouchableOpacity>
-          <MaterialCommunityIcons name="chevron-left" size={30} color={theme.colors.primary} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>My Schedule</Text>
-        <TouchableOpacity>
-          <MaterialCommunityIcons name="magnify" size={24} color={theme.colors.primary} />
-        </TouchableOpacity>
-      </View>
+    <>
+      {patientDocuments ? <PatientDocumentScreen patient={patientDocuments} setPatientDocuments={setPatientDocuments} /> : <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.header}>
+          <TouchableOpacity>
+            <MaterialCommunityIcons name="chevron-left" size={30} color={theme.colors.primary} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>My Schedule</Text>
+          <View style={styles.headerIcons}>
+            <TouchableOpacity onPress={() => handleDateChange('back')}>
+              <MaterialCommunityIcons name="calendar" size={24} color={theme.colors.primary} />
+            </TouchableOpacity>
+            <TouchableOpacity>
+              <MaterialCommunityIcons name="magnify" size={24} color={theme.colors.primary} />
+            </TouchableOpacity>
+          </View>
+        </View>
 
-      <View style={styles.quickGlanceRow}>
+        {/* <View style={styles.quickGlanceRow}>
         <Text style={styles.sectionTitle}>Quick Glance</Text>
         <View style={styles.dateContainer}>
           <TouchableOpacity onPress={() => handleDateChange('back')}>
@@ -357,82 +413,89 @@ export default function ScheduleScreen() {
             <MaterialCommunityIcons name="chevron-right" size={24} color={theme.colors.primary} />
           </TouchableOpacity>
         </View>
-      </View>
+      </View> */}
 
-      <View style={styles.scheduleTypeContainer}>
-        <TouchableOpacity 
-          style={[
-            styles.scheduleTypeButton,
-            activeTab === 'Out - Patients' && styles.activeScheduleTypeButton
-          ]}
-          onPress={() => setActiveTab('Out - Patients')}
-        >
-          <Text style={[
-            styles.scheduleTypeText,
-            activeTab === 'Out - Patients' && styles.activeScheduleTypeText
-          ]}>Out - Patients</Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={[
-            styles.scheduleTypeButton,
-            activeTab === 'In - Patients' && styles.activeScheduleTypeButton
-          ]}
-          onPress={() => setActiveTab('In - Patients')}
-        >
-          <Text style={[
-            styles.scheduleTypeText,
-            activeTab === 'In - Patients' && styles.activeScheduleTypeText
-          ]}>In - Patients</Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={[
-            styles.scheduleTypeButton,
-            activeTab === 'OT Schedule' && styles.activeScheduleTypeButton
-          ]}
-          onPress={() => setActiveTab('OT Schedule')}
-        >
-          <Text style={[
-            styles.scheduleTypeText,
-            activeTab === 'OT Schedule' && styles.activeScheduleTypeText
-          ]}>OT Schedule</Text>
-        </TouchableOpacity>
-      </View>
+        <View style={styles.scheduleTypeContainer}>
+          <TouchableOpacity
+            style={[
+              styles.scheduleTypeButton,
+              activeTab === 'Out - Patients' && styles.activeScheduleTypeButton
+            ]}
+            onPress={() => setActiveTab('Out - Patients')}
+          >
+            <MaterialCommunityIcons name="account-group" size={24} color={activeTab === 'Out - Patients' ? theme.colors.primary : '#666'} />
 
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {activeTab === 'Out - Patients' ? (
-          appointments.map((appointment, index) => (
-            <Card key={index} style={styles.appointmentCard}>
-              <Card.Content>
-                <PatientCard patient={appointment} />
-              </Card.Content>
-            </Card>
-          ))
-        ) : activeTab === 'In - Patients' ? (
-          appointments.map((appointment, index) => (
-            <Card key={index} style={styles.appointmentCard}>
-              <Card.Content>
-                <PatientCard patient={appointment} />
-              </Card.Content>
-            </Card>
-          ))
-        ) : (
-          otSchedule.map((surgery, index) => (
-            <Card key={index} style={styles.surgeryCard}>
-              <Card.Content>
-                <OTScheduleCard surgery={surgery} />
-              </Card.Content>
-            </Card>
-          ))
-        )}
-      </ScrollView>
+            <Text style={[
+              styles.scheduleTypeText,
+              activeTab === 'Out - Patients' && styles.activeScheduleTypeText
+            ]}>Out - Patients</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.scheduleTypeButton,
+              activeTab === 'In - Patients' && styles.activeScheduleTypeButton
+            ]}
+            onPress={() => setActiveTab('In - Patients')}
+          >
+            <MaterialCommunityIcons name="bed" size={24} color={activeTab === 'In - Patients' ? theme.colors.primary : '#666'} />
 
-      <PreOpChecklistModal
-        visible={checklistVisible}
-        hideModal={hideChecklist}
-        patient={selectedPatient}
-        initialTab={initialModalTab}
-      />
-    </SafeAreaView>
+            <Text style={[
+              styles.scheduleTypeText,
+              activeTab === 'In - Patients' && styles.activeScheduleTypeText
+            ]}>In - Patients</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.scheduleTypeButton,
+              activeTab === 'OT Schedule' && styles.activeScheduleTypeButton
+            ]}
+            onPress={() => setActiveTab('OT Schedule')}
+          >
+            <MaterialCommunityIcons name="medical-bag" size={24} color={activeTab === 'OT Schedule' ? theme.colors.primary : '#666'} />
+
+            <Text style={[
+              styles.scheduleTypeText,
+              activeTab === 'OT Schedule' && styles.activeScheduleTypeText
+            ]}>OT Schedule</Text>
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView showsVerticalScrollIndicator={false}>
+          {activeTab === 'Out - Patients' ? (
+            appointments.map((appointment, index) => (
+              <Card key={index} style={styles.appointmentCard}>
+                <Card.Content>
+                  <PatientCard patient={appointment} setPatientDocuments={setPatientDocuments} />
+                </Card.Content>
+              </Card>
+            ))
+          ) : activeTab === 'In - Patients' ? (
+            appointments.map((appointment, index) => (
+              <Card key={index} style={styles.appointmentCard}>
+                <Card.Content>
+                  <PatientCard patient={appointment} setPatientDocuments={setPatientDocuments} />
+                </Card.Content>
+              </Card>
+            ))
+          ) : (
+            otSchedule.map((surgery, index) => (
+              <Card key={index} style={styles.surgeryCard}>
+                <Card.Content>
+                  <OTScheduleCard surgery={surgery} />
+                </Card.Content>
+              </Card>
+            ))
+          )}
+        </ScrollView>
+
+        <PreOpChecklistModal
+          visible={checklistVisible}
+          hideModal={hideChecklist}
+          patient={selectedPatient}
+          initialTab={initialModalTab}
+        />
+      </SafeAreaView>}
+    </>
   );
 }
 
@@ -448,6 +511,11 @@ const styles = StyleSheet.create({
     padding: width * 0.04,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
+  },
+  headerIcons: {
+    display: 'flex',
+    flexDirection: 'row',
+    gap: 5
   },
   headerTitle: {
     ...typography.h2,
@@ -477,18 +545,20 @@ const styles = StyleSheet.create({
   scheduleTypeContainer: {
     flexDirection: 'row',
     paddingHorizontal: width * 0.04,
-    marginBottom: height * 0.02,
+    marginVertical: height * 0.02,
     gap: width * 0.03,
+    borderBottomWidth:2,
+    borderBottomColor:'#eee'
   },
   scheduleTypeButton: {
     flex: 1,
     paddingVertical: height * 0.015,
-    borderRadius: width * 0.02,
-    backgroundColor: '#f5f5f5',
     alignItems: 'center',
+
   },
   activeScheduleTypeButton: {
-    backgroundColor: theme.colors.primary,
+    borderBottomColor: theme.colors.primary,
+    borderBottomWidth: 2,
   },
   scheduleTypeText: {
     ...typography.regular,
@@ -498,7 +568,7 @@ const styles = StyleSheet.create({
   activeScheduleTypeText: {
     ...typography.regular,
     fontSize: width * 0.038,
-    color: '#fff',
+    color: theme.colors.primary,
   },
   placeholderText: {
     textAlign: 'center',
@@ -513,22 +583,26 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   patientCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: width * 0.04,
-    marginBottom: height * 0.012,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    // backgroundColor: '#fff',
+    // borderRadius: 12,
+    // padding: width * 0.04,
+    // marginBottom: height * 0.012,
+    // elevation: 2,
+    // shadowColor: '#000',
+    // shadowOffset: { width: 0, height: 1 },
+    // shadowOpacity: 0.1,
+    // shadowRadius: 2,
+    display: 'flex',
+    flexDirection: 'row',
+    justifyContent: 'space-between'
   },
   patientMainInfo: {
-    marginBottom: height * 0.01,
+    // marginBottom: height * 0.01,
   },
   nameAndTime: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
+    gap: 2,
     alignItems: 'center',
   },
   patientName: {
@@ -537,12 +611,15 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   appointmentTime: {
-    fontSize: width * 0.038,
+    fontSize: width * 0.035,
     fontFamily: 'Poppins-Medium',
-    color: theme.colors.primary,
+    color: '#666',
   },
   patientSubInfo: {
     marginTop: 2,
+    display: 'flex',
+    flexDirection: 'row',
+    gap: 5
   },
   ageGender: {
     fontSize: width * 0.035,
@@ -553,13 +630,13 @@ const styles = StyleSheet.create({
     fontSize: width * 0.032,
     fontFamily: 'Poppins-Regular',
     color: '#999',
-    marginTop: 2,
+    // marginTop: 2,
   },
   consultInfo: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginVertical: height * 0.01,
+    // marginVertical: height * 0.01,
   },
   leftSection: {
     flex: 1,
@@ -567,6 +644,10 @@ const styles = StyleSheet.create({
   rightSection: {
     flexDirection: 'row',
     gap: width * 0.02,
+  },
+  time: {
+    display: 'flex',
+    flexDirection: 'row'
   },
   consultType: {
     fontSize: width * 0.035,
@@ -591,6 +672,7 @@ const styles = StyleSheet.create({
   statusContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 5
   },
   statusText: {
     fontSize: width * 0.032,
@@ -689,4 +771,9 @@ const styles = StyleSheet.create({
     fontSize: width * 0.032,
     fontFamily: 'Poppins-Medium',
   },
+  iconButton: {
+    backgroundColor: '#ddd',
+    borderRadius: 50,
+    padding: 5
+  }
 }); 
