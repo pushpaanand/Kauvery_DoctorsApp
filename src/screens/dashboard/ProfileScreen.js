@@ -7,13 +7,15 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { theme } from '../../utils/theme';
 import CustomAlert from '../../components/CustomAlert';
+import { useSelector } from 'react-redux';
 
 const { width, height } = Dimensions.get('window');
 
 export default function ProfileScreen() {
   const navigation = useNavigation();
   const [alertVisible, setAlertVisible] = useState(false);
-
+  const user = useSelector(state => state.auth.user);
+console.log(user)
   const profileData = {
     name: 'Dr. Baraneedharan',
     specialization: 'Diabetologist',
@@ -84,11 +86,11 @@ export default function ProfileScreen() {
         <View style={styles.profileSection}>
           <View style={styles.profileHeader}>
             <Image
-              source={require('../../assets/images/doctor.png')}
+              source={{uri:`${user.PhotoUrl}`}}
               style={styles.profileImage}
             />
             <View style={styles.profileInfo}>
-              <Text style={styles.doctorName}>{profileData.name}</Text>
+              <Text style={styles.doctorName}>{user['Doctor Name']}</Text>
               <Text style={styles.specialization}>{profileData.specialization}</Text>
               <TouchableOpacity>
                 <Text style={styles.editProfileText}>Edit Profile</Text>

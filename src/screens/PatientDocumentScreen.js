@@ -6,7 +6,7 @@ import { typography } from '../utils/typography';
 import { Table, Row, Rows } from 'react-native-table-component';
 
 const { width, height } = Dimensions.get('window');
-const PatientDocumentScreen = ({ patient, setPatientDocuments }) => {
+const PatientDocumentScreen = ({ patient, setPatientDocuments ,activeTab}) => {
   const tableHead = ['File Name', 'Category', 'Date', 'Action'];
   const tableData = [
     [
@@ -33,6 +33,8 @@ const PatientDocumentScreen = ({ patient, setPatientDocuments }) => {
       </View>
     ]
   ];
+  console.log(patient)
+  console.log(activeTab)
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -40,8 +42,8 @@ const PatientDocumentScreen = ({ patient, setPatientDocuments }) => {
           <MaterialCommunityIcons name="chevron-left" size={30} color={theme.colors.primary} />
         </TouchableOpacity>
         <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>{patient.name} {'\n'} Files & Documents</Text>
-          <Text style={styles.uhidText}>{patient.uhid} | {patient.age} | {patient.gender}</Text>
+          <Text style={styles.headerTitle}>{activeTab === 'Out - Patients' ?patient.PATIENT_NAME:patient.PatientName} {'\n'} Files & Documents</Text>
+          <Text style={styles.uhidText}>{activeTab === 'Out - Patients' ?patient.UHID:patient.Uhid} | {activeTab === 'Out - Patients' ?patient.AGE:patient.Age} Years | {activeTab === 'Out - Patients' ?patient.Sex:patient.Gender}</Text>
         </View>
         <TouchableOpacity>
           <MaterialCommunityIcons name="filter" size={24} color={theme.colors.primary} />
@@ -84,6 +86,7 @@ const styles = StyleSheet.create({
     fontSize: width * 0.032,
     fontFamily: 'Poppins-Regular',
     color: '#999',
+    textAlign:'center',
     marginTop: 2,
   },
   head: { height: 40, },

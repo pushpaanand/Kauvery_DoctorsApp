@@ -5,7 +5,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSelector } from 'react-redux';
 import { theme } from '../../utils/theme';
 import { patientService } from '../../api/services/patientService';
-import { OTPatientsData, OutPatienstData } from '../../utils/constants';
+import { COLORS, OTPatientsData, OutPatienstData } from '../../utils/constants';
 import moment from 'moment';
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 
@@ -13,37 +13,15 @@ const STATUSBAR_HEIGHT = Platform.OS === 'ios' ? 44 : StatusBar.currentHeight;
 const { width, height } = Dimensions.get('window');
 
 // Update the color palette to use primary color variations
-const COLORS = {
-  primary: '#962067',
-  cardColors: {
-    first: '#962067',
-    second: '#962067',
-    third: '#962067',
-  },
-  outPatient: '#4CAF50',
-  inPatient: '#2196F3',
-  surgery: '#FF5722',
-  appointment: '#FF9800',
-  background: '#F5F7FA',
-  cardBg: '#FFFFFF',
-  text: {
-    primary: '#333333',
-    secondary: '#666666',
-    light: '#999999'
-  },
-  appoinments: {
-    waiting: '#ff8c00',
-    complete: '#32cd32',
-    inprogress: '#ff8c00',
-    scheduled: '#0000ff'
-  }
-};
+
 // Update the DoctorTypeCard component for a more compact design
-const DoctorTypeCard = ({ icon, title, count, color }) => (
+const DoctorTypeCard = ({ icon, title, count, color, length}) => (
+
   <TouchableOpacity
     style={[styles.statCard, {
       backgroundColor: '#FFFFFF',
       borderColor: '#fff',
+      flexDirection:length>1?'column':'row',
     }]}
   >
     <View style={styles.statCardContent}>
@@ -58,7 +36,8 @@ const DoctorTypeCard = ({ icon, title, count, color }) => (
       <Text style={styles.statCount}>{count}</Text>
 
     </View>
-    <Text style={styles.statTitle}>{title}</Text>
+   
+      <Text style={[styles.statTitle,{marginTop:length>1?0:10,paddingLeft:length>1?0:10}]}>{title}</Text>
     {/* </View> */}
 
   </TouchableOpacity>
@@ -68,20 +47,20 @@ const DoctorTypeCard = ({ icon, title, count, color }) => (
 const ProgressBar = ({ current, total }) => (
   <View style={styles.progressContainer}>
     <View style={styles.progressTextContainer}>
-      <Text style={styles.progressText}>Today's Patient Visits</Text>
-      <Text style={styles.progressCount}>{current}/{total}</Text>
+      {/* <Text style={styles.progressText}>Today's Patient Visits</Text> */}
+      {/* <Text style={styles.progressCount}>{current}/{total}</Text> */}
     </View>
     <View style={styles.progressBarContainer}>
       <View style={[styles.progressBar, { width: `${(current / total) * 100}%` }]} />
     </View>
+    <Text style={styles.progressText}>Remaining: {total-current}</Text>
+
   </View>
 );
 
 
 
-
 export default function HomeScreen({ navigation }) {
-  const [selectedDate, setSelectedDate] = useState(new Date());
   const [dateRange, setDateRange] = useState(new Date());
   const [searchQuery, setSearchQuery] = React.useState('');
   const [outPatients, setOutPatients] = useState([]);
@@ -118,20 +97,18 @@ export default function HomeScreen({ navigation }) {
   }, [doctorId]);
 
 
-  // In your component, replace the Redux selector
 
-  const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
   // Add this function back for week days generation
+
   const generateWeekDays = () => {
     const days = [];
     const startDate = new Date(dateRange);
-    startDate.setDate(startDate.getDate() - startDate.getDay()); // Start from Sunday
 
     for (let i = 0; i < 7; i++) {
-      const date = new Date(startDate);
+      const date = new Date(dateRange);
       date.setDate(startDate.getDate() + i);
+      
       const dateString = moment(date).format('DD-MM-YYYY');
-
       const hasOutPatientAppts = OutPatienstData.some(patient =>
         patient.Appointment_Date === dateString
       );
@@ -139,20 +116,14 @@ export default function HomeScreen({ navigation }) {
       const hasInPatientAppts = inPatients.some(patient =>
         patient.AdmissionDate.replaceAll('/', '-') === dateString
       );
-
-      // const hasOtPatientAppts = OTPatientsData.some(patient => 
-      //   moment(patient.SurgeryDate).format('DD-MM-YYYY') === dateString
-      // );
-
       const hasAppts = hasOutPatientAppts || hasInPatientAppts;
-
       days.push({
         date: date.getDate(),
         day: date.toLocaleDateString('en-US', { weekday: 'short' }),
         fullDate: dateString,
-        isSelected: moment(date).format('DD-MM-YYYY') === moment(dateRange).format('DD-MM-YYYY'),
+        isSelected: date.toDateString() === dateRange.toDateString(),
         hasAppointments: hasAppts,
-        isToday: moment(date).format('DD-MM-YYYY') === moment().format('DD-MM-YYYY')
+        isToday: date.toDateString() === new Date().toDateString()
       });
     }
     return days;
@@ -215,18 +186,19 @@ export default function HomeScreen({ navigation }) {
 
     if (selectedDateOutPatients.length > 0) {
       cards.push(
-   <>
-        <DoctorTypeCard
-          key="outpatients"
-          icon="account-group"
-          title="Out Patients"
-          count={selectedDateOutPatients.length.toString()}
-          color={COLORS.primary}
-        />
-        <ProgressBar
-        current={selectedDateOutPatients.length.toString()}
-        total={selectedDateOutPatients.length.toString()}
-      /></>
+        <View style={styles.cardProgressContainer}>
+          <DoctorTypeCard
+            key="outpatients"
+            icon="account-group"
+            title="Out Patients"
+            count={selectedDateOutPatients.length.toString()}
+            color={COLORS.primary}
+            length={cards.length}
+          />
+          <ProgressBar
+            current={selectedDateOutPatients.length.toString()}
+            total={selectedDateOutPatients.length.toString()}
+          /></View>
       );
     }
 
@@ -238,6 +210,7 @@ export default function HomeScreen({ navigation }) {
           title="In Patients"
           count={selectedInPatients.length.toString()}
           color={COLORS.primary}
+          length={cards.length}
         />
       );
     }
@@ -253,9 +226,8 @@ export default function HomeScreen({ navigation }) {
     //     />
     //   );
     // }
-
     return (
-      <View style={styles.cardsContainer}>
+      <View style={cards.length>1?styles.cardsContainer:styles.lastCardContainer}>
         {cards.map((card, index) => (
           <View
             key={index}
@@ -270,7 +242,6 @@ export default function HomeScreen({ navigation }) {
       </View>
     );
   };
-  console.log(OutPatienstData[2])
 
   // Update the renderCalendarSection
   const renderCalendarSection = () => {
@@ -347,7 +318,8 @@ export default function HomeScreen({ navigation }) {
               ]}>
                 <Text style={[
                   styles.dateNumberText,
-                  (item.isSelected || item.isToday) && styles.selectedDateNumberText
+                  (item.isSelected || item.isToday) && styles.selectedDateNumberText,
+                  item.isToday&&!item.isSelected && styles.todayDateNumberText
                 ]}>
                   {item.date}
                 </Text>
@@ -376,15 +348,12 @@ export default function HomeScreen({ navigation }) {
   const selectedDateString = moment(dateRange).format('DD-MM-YYYY');
 
   const filteredOutPatients = OutPatienstData.filter(appointment =>
-    appointment.Appointment_Date === selectedDateString 
+    appointment.Appointment_Date === selectedDateString && appointment.PATIENT_NAME.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const filteredInPatients = inPatients.filter(patient =>
-    // console.log(patient.AdmissionDate),
-
     patient.AdmissionDate.replaceAll('/', '-') === selectedDateString && patient.PatientName.toLowerCase().includes(searchQuery.toLowerCase())
   );
-  console.log(filteredInPatients)
   const filteredOtPatients = otPatients.filter(patient =>
     patient.SurgeryDate === selectedDateString
   );
@@ -523,7 +492,7 @@ export default function HomeScreen({ navigation }) {
         {filteredInPatients.length > 0 || filteredOutPatients.length > 0 || filteredOtPatients.length > 0 ? <View style={styles.overviewSection}>
 
           {renderDoctorTypeCards()}
-        </View>:''}
+        </View> : ''}
 
         {/* Upcoming Section */}
         <View style={styles.upcomingSection}>
@@ -532,7 +501,7 @@ export default function HomeScreen({ navigation }) {
             {filteredInPatients.length > 0 || filteredOutPatients.length > 0 || filteredOtPatients.length > 0 ?
               <TouchableOpacity onPress={() => { navigation.navigate('Schedule') }}>
                 <Text style={styles.viewAllText}>View All</Text>
-              </TouchableOpacity>:''}
+              </TouchableOpacity> : ''}
           </View>
           {filteredInPatients.length > 0 || filteredOutPatients.length > 0 || filteredOtPatients.length > 0 ?
             renderUpcomingAppointments() : <View style={styles.noAppoinments}>
@@ -651,7 +620,8 @@ const styles = StyleSheet.create({
   overviewSection: {
     backgroundColor: '#fff',
     paddingVertical: height * 0.015,
-    // marginBottom: height * 0.002,
+    marginBottom: height * 0.01,
+
   },
   sectionTitle: {
     fontFamily: 'Poppins-SemiBold',
@@ -669,18 +639,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: width * 0.04,
     marginTop: height * 0.01,
   },
+  lastCardContainer:{
+    width:'100%',
+    justifyContent:'flex-start'  },
   statCard: {
     width: width * 0.31,
     padding: width * 0.025,
     backgroundColor: '#FFFFFF',
     borderRightWidth: 1,
     borderColor: '#666',
+
   },
   statCardContent: {
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
     flexDirection: 'row',
+
   },
   iconContainer: {
     padding: width * 0.02,
@@ -706,7 +681,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     paddingTop: height * 0.02,
     paddingBottom: height * 0.01,
-    marginTop: height * 0.01,
   },
   appointmentCard: {
     marginHorizontal: width * 0.04,
@@ -807,8 +781,11 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   progressContainer: {
-    paddingHorizontal: width * 0.04,
-    marginTop: height * 0.02,
+
+    width:width*1,
+    paddingHorizontal:width*0.04,
+
+
   },
   progressTextContainer: {
     flexDirection: 'row',
@@ -820,6 +797,7 @@ const styles = StyleSheet.create({
     fontSize: width * 0.035,
     fontFamily: 'Poppins-Regular',
     color: COLORS.text.secondary,
+    textAlign:'right'
   },
   progressCount: {
     fontSize: width * 0.035,
@@ -831,6 +809,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#F0F0F0',
     borderRadius: 6,
     overflow: 'hidden',
+display:'flex',
+flexDirection:'column',
+alignItems:'center'
   },
   progressBar: {
     height: '100%',
@@ -862,7 +843,7 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   selectedDateItem: {
-    backgroundColor: '#fff',
+    backgroundColor:'#fff',
   },
   todayDateItem: {
     backgroundColor: '#fff',
@@ -874,7 +855,7 @@ const styles = StyleSheet.create({
     marginBottom: height * 0.004,
   },
   selectedDayText: {
-    color: theme.colors.primary,
+    color: '#666',
   },
   dateNumber: {
     width: 30,
@@ -891,7 +872,14 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.primary,
   },
   todayDateNumber: {
-    backgroundColor: theme.colors.primary,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth:1,
+    marginBottom: height * 0.005,
+    borderColor: theme.colors.primary,
   },
   dateNumberText: {
     fontFamily: 'Poppins-Medium',
@@ -904,6 +892,9 @@ const styles = StyleSheet.create({
     color: '#fff',
     marginTop: height * 0.005
 
+  },
+  todayDateNumberText:{
+    color:'#666'
   },
   appointmentDot: {
     width: 5,
@@ -932,20 +923,24 @@ const styles = StyleSheet.create({
     color: theme.colors.primary,
     marginHorizontal: 10,
   },
-  noAppoinments:{
-    alignItems:'center',        
+  noAppoinments: {
+    alignItems: 'center',
   },
-  noAppoinmentsHeader:{
-    fontFamily:'Poppins-Medium',
-    fontSize:width*0.05,
-    color:'#962067',
-    marginBottom:height*0.01
+  noAppoinmentsHeader: {
+    fontFamily: 'Poppins-Medium',
+    fontSize: width * 0.05,
+    color: '#962067',
+    marginBottom: height * 0.01
   },
-  noAppoinmentsText:{
-    fontFamily:'Poppins-Regular',
-    fontSize:width*0.035,
-    color:COLORS.text.secondary,
-textAlign:'center'
+  noAppoinmentsText: {
+    fontFamily: 'Poppins-Regular',
+    fontSize: width * 0.035,
+    color: COLORS.text.secondary,
+    textAlign: 'center'
+  },
+  cardProgressContainer:{
+    width:width*0.45,
+    
   }
 
 }); 

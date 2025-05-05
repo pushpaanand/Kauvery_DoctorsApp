@@ -34,7 +34,7 @@ export default function TabNavigator() {
           ),
         }}
       />
-      <Tab.Screen
+      {/* <Tab.Screen
         name="Patients"
         component={PatientsScreen}
         options={{
@@ -42,7 +42,7 @@ export default function TabNavigator() {
             <MaterialCommunityIcons name="account-group" size={24} color={color} />
           ),
         }}
-      />
+      /> */}
       <Tab.Screen
         name="Schedule"
         component={ScheduleScreen}
@@ -52,7 +52,7 @@ export default function TabNavigator() {
           ),
         }}
       />
-      <Tab.Screen
+      {/* <Tab.Screen
         name="In-Patients"
         component={InPatientsScreen}
         options={{
@@ -60,7 +60,7 @@ export default function TabNavigator() {
             <MaterialCommunityIcons name="bed" size={24} color={color} />
           ),
         }}
-      />
+      /> */}
       <Tab.Screen
         name="Profile"
         component={ProfileScreen}

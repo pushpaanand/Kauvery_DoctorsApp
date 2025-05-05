@@ -41,48 +41,6 @@ export default function InPatientsScreen() {
     }
   }, [doctorId]);
 
-  // const inPatients = [
-  //   {
-  //     name: 'Rajesh Kumar M.',
-  //     uhid: 'UHID: CN2089941421',
-  //     age: '42 years',
-  //     gender: 'Male',
-  //     condition: 'Post Cardiac Surgery',
-  //     roomNumber: 'ICU-201',
-  //     status: 'Critical',
-  //     admittedDate: 'Admitted: 20.10.2024'
-  //   },
-  //   {
-  //     name: 'Priya S.',
-  //     uhid: 'UHID: CN2089941422',
-  //     age: '22 years',
-  //     gender: 'Female',
-  //     condition: 'Pneumonia',
-  //     roomNumber: 'General-102',
-  //     status: 'Stable',
-  //     admittedDate: 'Admitted: 21.10.2024'
-  //   },
-  //   {
-  //     name: 'Arjun Reddy K.',
-  //     uhid: 'UHID: CN2089941423',
-  //     age: '35 years',
-  //     gender: 'Male',
-  //     condition: 'Post-Op Recovery',
-  //     roomNumber: 'Surgical-301',
-  //     status: 'Stable',
-  //     admittedDate: 'Admitted: 19.10.2024'
-  //   },
-  //   {
-  //     name: 'Lakshmi N.',
-  //     uhid: 'UHID: CN2089941424',
-  //     age: '55 years',
-  //     gender: 'Female',
-  //     condition: 'Diabetic Ketoacidosis',
-  //     roomNumber: 'ICU-203',
-  //     status: 'Critical',
-  //     admittedDate: 'Admitted: 20.10.2024'
-  //   }
-  // ];
 
   const handleWardSelect = (ward) => {
     setSelectedWard(ward);
