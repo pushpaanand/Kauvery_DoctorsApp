@@ -48,9 +48,7 @@ export const authService = {
           'Authorization': `Bearer ${await AsyncStorage.getItem('access_token')}`
         },
         body: JSON.stringify({
-          Branch: "DEV",
-          Username: credentials.Username,
-          Password: credentials.Password
+          mobileno:credentials.mobileno
         })
       });
 

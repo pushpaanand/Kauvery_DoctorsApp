@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -24,155 +24,153 @@ const { width } = Dimensions.get('window');
 const LoginScreen = ({ navigation }) => {
   const dispatch = useDispatch();
   const [credentials, setCredentials] = useState({
-    Username: '',
-    Password: '',
+    mobileno: ''
   });
-  const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
+  const [screenCount, setScreenCount] = useState(1)
+  const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  const otpInputs = useRef([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [isVisible, setIsVisible] = useState(false);
+
   const handleLogin = async () => {
-    if (!credentials.Username || !credentials.Password) {
-      Alert.alert('Error', 'Please enter both username and password');
+    console.log(authService)
+
+    if (!credentials.mobileno) {
+      Alert.alert('Error', 'Please enter mobile number');
       return;
     }
 
     setLoading(true);
     setError('');
-
     try {
-      const loginResponse = await authService.login(credentials);
-      if (loginResponse) {
-        dispatch(setUser(loginResponse));
-        setIsVisible(true);
 
-        setTimeout(() => {
-          setIsVisible(false);
-          navigation.navigate('Dashboard');
-        }, 3000);
-      }
+setScreenCount(2)
+
+      // const loginResponse = await authService.login(credentials);
+
+      // if (loginResponse) {
+      //   dispatch(setUser(loginResponse));
+      //   setIsVisible(true);
+
+      //   setTimeout(() => {
+      //     setIsVisible(false);
+      //     navigation.navigate('Dashboard');
+      //   }, 3000);
+      // }
     } catch (error) {
       setError(error.message);
+      console.log(error)
       Alert.alert('Login Failed', error.message);
     } finally {
       setLoading(false);
     }
   };
 
+  const handleOtpChange = (text, index) => {
+    if (text.length <= 1) {
+      const newOtp = [...otp];
+      newOtp[index] = text;
+      setOtp(newOtp);
+
+      // Move to next input if current input is filled
+      if (text.length === 1 && index < 5) {
+        otpInputs.current[index + 1].focus();
+      }
+    }
+  };
+
+  const handleOtpKeyPress = (e, index) => {
+    if (e.nativeEvent.key === 'Backspace' && !otp[index] && index > 0) {
+      otpInputs.current[index - 1].focus();
+    }
+  };
+
   return (
-<>
-{isVisible?<SplashScreen/>: <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView
-        style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-          <View style={styles.headerContainer}>
-            <Image
-              source={require('../assets/images/25YearsLogo.png')}
-              style={styles.logo}
-              resizeMode="contain"
-            />
-
-            <Text style={styles.welcomeText}>Welcome to DocEase!</Text>
-            <Text style={styles.subtitleText}>Where Care Meets Convenience</Text>
-            <Image
-              source={require('../assets/images/login.png')}
-              style={styles.logo1}
-              resizeMode="contain"
-            />
-
-            <View style={styles.descriptionContainer}>
-              <Text style={styles.descriptionText}>
-                Streamline your practice with DocEase{'\n'}
-                The digital companion for modern{'\n'}
-                healthcare professionals
-              </Text>
+    <>
+      {isVisible ? <SplashScreen /> : <SafeAreaView style={styles.container}>
+        <KeyboardAvoidingView
+          style={styles.container}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+          <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+            <View style={styles.headerContainer}>
+              <Image
+                source={require('../assets/images/25YearsLogo.png')}
+                style={styles.logo}
+                resizeMode="contain"
+              />
+              <Text style={styles.welcomeText}>Welcome to DocEase!</Text>
+              <Text style={styles.subtitleText}>Where Care Meets Convenience</Text>
+              {screenCount === 1 && <>
+                <Image
+                  source={require('../assets/images/login.png')}
+                  style={styles.logo1}
+                  resizeMode="contain"
+                />
+                <View style={styles.descriptionContainer}>
+                  <Text style={styles.descriptionText}>
+                    Streamline your practice with DocEase{'\n'}
+                    The digital companion for modern{'\n'}
+                    healthcare professionals
+                  </Text>
+                </View>
+              </>
+              }
             </View>
-          </View>
-
-          <View style={styles.formContainer}>
-            <View style={styles.inputContainer}>
-              <MaterialIcons
-                name="person"
-                size={24}
-                color="#666"
-                style={styles.inputIcon}
-              />
-              <TextInput
-                style={styles.input}
-                placeholder="Username"
-                value={credentials.Username}
-                onChangeText={(text) => setCredentials(prev => ({ ...prev, Username: text }))}
-                placeholderTextColor="#666"
-              />
-            </View>
-
-            <View style={styles.inputContainer}>
-              <MaterialIcons
-                name="lock"
-                size={24}
-                color="#666"
-                style={styles.inputIcon}
-              />
-              <TextInput
-                style={styles.input}
-                placeholder="Password"
-                value={credentials.Password}
-                onChangeText={(text) => setCredentials(prev => ({ ...prev, Password: text }))}
-                secureTextEntry={!showPassword}
-                placeholderTextColor="#666"
-              />
-              <TouchableOpacity
-                onPress={() => setShowPassword(!showPassword)}
-                style={styles.eyeIcon}
-              >
+            {screenCount === 2 && <View>
+              <Text style={styles.verifyTextHeader}>Verify Your Number</Text>
+              <Text style={styles.verifyTextSubHeader}>We've sent an OTP to {credentials.mobileno}</Text>
+            </View>}
+            <View style={styles.formContainer}>
+              <Text style={styles.formText}>{screenCount === 1 ? 'Enter Your mobile number to get started' : 'Enter the 6-digit code'}</Text>
+              {screenCount === 1 && <View style={styles.inputContainer}>
                 <MaterialIcons
-                  name={showPassword ? "visibility-off" : "visibility"}
+                  name="phone"
                   size={24}
                   color="#666"
+                  style={styles.inputIcon}
                 />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter your mobile number"
+                  value={credentials.mobileno}
+                  onChangeText={(text) => setCredentials({ ...credentials, mobileno: text })}
+                  placeholderTextColor="#666"
+                  keyboardType="phone-pad"
+                />
+              </View>}
+
+{screenCount==2&&              <View style={styles.otpContainer}>
+                {otp.map((digit, index) => (
+                  <TextInput
+                    key={index}
+                    ref={ref => otpInputs.current[index] = ref}
+                    style={styles.otpInput}
+                    value={digit}
+                    onChangeText={(text) => handleOtpChange(text, index)}
+                    onKeyPress={(e) => handleOtpKeyPress(e, index)}
+                    keyboardType="number-pad"
+                    maxLength={1}
+                    selectTextOnFocus
+                  />
+                ))}
+              </View>}
+
+              <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
+                <Text style={styles.loginButtonText}>{screenCount===1?'Get OTP':'Verify OTP'}</Text>
               </TouchableOpacity>
+              {screenCount === 2 && <View style={styles.resendOTPContainer}><Text style={styles.resendOTPText}>Didn't recieve the OTP?</Text><TouchableOpacity ><Text style={styles.resendOTPButton}>Resend OTP</Text></TouchableOpacity></View>}
             </View>
+          </ScrollView>
 
-            <View style={styles.optionsContainer}>
-              <TouchableOpacity
-                style={styles.checkboxContainer}
-                onPress={() => setRememberMe(!rememberMe)}
-              >
-                <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]}>
-                  {rememberMe && (
-                    <MaterialIcons
-                      name="check"
-                      size={16}
-                      color="#fff"
-                    />
-                  )}
-                </View>
-                <Text style={styles.rememberMeText}>Remember me</Text>
-              </TouchableOpacity>
+        </KeyboardAvoidingView>
+        <View style={styles.copyrightContainer}>
+          <Text style={styles.copyrightText}>&copy; 2025 DocEase. All rights reserved.</Text>
+        </View>
+      </SafeAreaView>}
 
-              <TouchableOpacity onPress={() => console.log('Forgot password')}>
-                <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-              </TouchableOpacity>
-            </View>
-
-            <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-              <Text style={styles.loginButtonText}>Login</Text>
-              <MaterialIcons
-                name="arrow-forward"
-                size={24}
-                color="#fff"
-                style={styles.arrowIcon}
-              />
-            </TouchableOpacity>
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>}  
-
-</>
+    </>
   );
 };
 
@@ -225,7 +223,19 @@ const styles = StyleSheet.create({
   },
   formContainer: {
     width: '100%',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 20
   },
+  formText: {
+    fontFamily: 'Poppins-Regular',
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 10
+  },
+
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -305,6 +315,62 @@ const styles = StyleSheet.create({
   arrowIcon: {
     marginLeft: 8,
   },
+  copyrightContainer: {
+    alignItems: 'center',
+
+  },
+  copyrightText: {
+    fontFamily: 'Poppins-Regular',
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 10
+  },
+  otpContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginVertical: 10,
+    marginBottom: 20
+  },
+  otpInput: {
+    width: 45,
+    height: 45,
+    borderWidth: 1,
+    borderColor: '#B4236C',
+    borderRadius: 8,
+    textAlign: 'center',
+    fontSize: 20,
+    fontFamily: 'Poppins-Regular',
+    color: '#333',
+  },
+  resendOTPContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 10,
+    gap: 5
+  },
+  resendOTPText: {
+    fontFamily: 'Poppins-Regular',
+    fontSize: 12,
+    color: '#666'
+  },
+  resendOTPButton: {
+    fontFamily: 'Poppins-Regular',
+    color: '#B4236C',
+    fontSize: 12
+  },
+  verifyTextHeader:{
+    fontFamily:'Poppins-SemiBold',
+    fontSize:18,
+    color:'#b4236c',
+    marginBottom:5
+  },
+  verifyTextSubHeader:{
+    fontFamily:'Poppins-SemiBold',
+    fontSize:14,
+    color:'#666',
+    marginBottom:20
+  }
 });
 
 export default LoginScreen; 
