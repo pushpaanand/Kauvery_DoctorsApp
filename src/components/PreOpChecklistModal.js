@@ -10,10 +10,10 @@ const { width, height } = Dimensions.get('window');
 const ChecklistItem = ({ title, date, status }) => (
   <View style={styles.checklistItem}>
     <View style={styles.itemLeft}>
-      <MaterialCommunityIcons 
-        name={status === 'Completed' ? 'check-circle' : status === 'pending' ? 'clock-outline' : 'alert-circle'} 
-        size={20} 
-        color={status === 'Completed' ? '#4CAF50' : status === 'pending' ? '#FFA000' : '#F44336'} 
+      <MaterialCommunityIcons
+        name={status === 'Completed' ? 'check-circle' : status === 'pending' ? 'clock-outline' : 'alert-circle'}
+        size={20}
+        color={status === 'Completed' ? '#4CAF50' : status === 'pending' ? '#FFA000' : '#F44336'}
       />
       <Text style={styles.itemTitle}>{title}</Text>
     </View>
@@ -32,8 +32,8 @@ export default function PreOpChecklistModal({ visible, hideModal, patient, initi
 
   return (
     <Portal>
-      <Modal 
-        visible={visible} 
+      <Modal
+        visible={visible}
         onDismiss={hideModal}
         contentContainerStyle={styles.modalContainer}
       >
@@ -119,15 +119,15 @@ export default function PreOpChecklistModal({ visible, hideModal, patient, initi
               </View>
             </>
           )} */}
-          {patient.INVESTIGATION.map((item,index)=>(
-  <ChecklistItem
-  key={index}
-  title={item.Name}
-  date={item.Date}
-  status={item.Status}
-/>
+          {patient.INVESTIGATION.sort((a, b) => a.Date.localeCompare(b.Date)).map((item, index) => (
+            <ChecklistItem
+              key={index}
+              title={item.Name}
+              date={item.Date}
+              status={item.Status}
+            />
           ))}
-           
+
         </ScrollView>
       </Modal>
     </Portal>
@@ -138,9 +138,8 @@ const styles = StyleSheet.create({
   modalContainer: {
     backgroundColor: 'white',
     margin: width * 0.05,
-    // borderRadius: width * 0.02,
-    borderTopLeftRadius:25,
-    borderTopRightRadius:25,
+    borderTopLeftRadius: 25,
+    borderTopRightRadius: 25,
     maxHeight: height * 0.8,
   },
   header: {
@@ -150,14 +149,14 @@ const styles = StyleSheet.create({
     padding: width * 0.04,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
-    backgroundColor:'#B4236c',
-    borderTopLeftRadius:25,
-    borderTopRightRadius:25,
+    backgroundColor: '#B4236c',
+    borderTopLeftRadius: 25,
+    borderTopRightRadius: 25,
   },
   modalTitle: {
     ...typography.h2,
     color: '#fff',
-    textAlign:'center'
+    textAlign: 'center'
   },
   tabContainer: {
     flexDirection: 'row',
@@ -202,7 +201,7 @@ const styles = StyleSheet.create({
   itemTitle: {
     ...typography.body,
     color: '#333',
-    width:'70%'
+    width: '70%'
   },
   itemDate: {
     fontSize: width * 0.035,

@@ -5,6 +5,7 @@ const initialState = {
   token: null,
   isLoading: false,
   error: null,
+  dateRange: new Date()
 };
 
 const authSlice = createSlice({
@@ -23,6 +24,9 @@ const authSlice = createSlice({
     setError: (state, action) => {
       state.error = action.payload;
     },
+    setDateRange: (state, action) => {
+      state.dateRange = action.payload
+    },
     logout: (state) => {
       state.user = null;
       state.token = null;
@@ -31,5 +35,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { setToken, setUser, setLoading, setError, logout } = authSlice.actions;
+export const { setToken, setUser, setLoading, setError, logout,setDateRange } = authSlice.actions;
 export default authSlice.reducer; 

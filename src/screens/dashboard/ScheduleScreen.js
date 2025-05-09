@@ -1,200 +1,236 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Image } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Image, Modal } from 'react-native';
 import { Text, Searchbar, Card } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../../utils/theme';
 import { typography } from '../../utils/typography';
 import PreOpChecklistModal from '../../components/PreOpChecklistModal';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { patientService } from '../../api/services/patientService';
 import PatientDocumentScreen from '../PatientDocumentScreen';
-import { COLORS, InPatientSearchText, OTPatientsData, OTPatientsSearchText, OutPatienstData, OutPatientSearchText } from '../../utils/constants';
+import { COLORS, INPatientsData, InPatientSearchText, OTPatientsData, OTPatientsSearchText, OutPatienstData, OutPatientSearchText, User } from '../../utils/constants';
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import moment from 'moment';
+import mixpanel, { trackEvent } from '../../utils/mixpanel';
+import { setDateRange } from '../../store/slices/authSlice';
 
 const { width, height } = Dimensions.get('window');
-const PatientCard = ({ patient, setPatientDocuments }) => (
-  <View style={styles.patientCard}>
-    <View>    <View style={styles.patientMainInfo}>
-      <View style={styles.nameAndTime}>
-        <Text style={styles.patientName}>{patient.PATIENT_NAME}</Text>
-        <Text style={styles.uhidText}>{patient.UHID}</Text>
-      </View>
-      <View style={styles.patientSubInfo}>
-        <View style={styles.time}>
-          <MaterialCommunityIcons name="account" size={15} color={'#666'} />
-          <Text style={styles.ageGender}>{patient.AGE} Age | {patient.Sex}</Text>
-        </View>
+const PatientCard = ({ patient, setPatientDocuments }) => {
+  const [isVideoModalVisible, setIsVideoModalVisible] = useState(false);
 
-        <View style={styles.time}>
-          <MaterialCommunityIcons name="clock" size={15} color={'#666'} />
-          <Text style={styles.ageGender}>{patient.Appointment_Time}</Text>
-        </View>
+  const handleVideoConsultation = () => {
+    setIsVideoModalVisible(true);
+    trackEvent('OP Video Consultation Started', { patientId: patient.UHID })
+  };
 
-      </View>
-    </View>
-
-
-      <View style={styles.statusSection}>
-        {patient.STATUS === 'waiting' && (
-          <View style={styles.statusContainer}>
-            {/* <MaterialCommunityIcons name="clock-outline" size={16} color="#FFA500" /> */}
-            <Text style={[styles.statusText, { color: '#FFA500' }]}>
-              Waiting
-            </Text>
-            <View >
-              {patient.CASE_TYPE && (
-                <Text style={styles.consultType}>• {patient.CASE_TYPE}</Text>
-              )}
-              {patient.REFERRED_BY_PHYSICIAN && (
-                <Text style={styles.referredBy} numberOfLines={1}>
-                  {patient.REFERRED_BY_PHYSICIAN}
-                </Text>
-              )}
-              {patient.Last_visit && (
-                <Text style={styles.lastVisit}>{patient.Last_visit}</Text>
-              )}
-            </View>
-          </View>
-        )}
-        {patient.STATUS === 'Completed' && (
-          <View style={styles.statusContainer}>
-            {/* <MaterialCommunityIcons name="check-circle" size={16} color="#4CAF50" /> */}
-            <View>
-              <Text style={[styles.statusText, { color: '#4CAF50' }]}>Completed</Text>
-              {
-                patient.Last_visit && <Text style={styles.consultType}>Last Visit:</Text>
-
-              }            </View>
-            <View>
-              {patient.CASE_TYPE && (
-                <Text style={styles.consultType}>• {patient.CASE_TYPE}</Text>
-              )}
-              {patient.REFERRED_BY_PHYSICIAN && (
-                <Text style={styles.referredBy} numberOfLines={1}>
-                  {patient.REFERRED_BY_PHYSICIAN}
-                </Text>
-              )}
-              {patient.Last_visit && (
-                <Text style={styles.lastVisit}>{patient.Last_visit}</Text>
-              )}
-            </View>
-          </View>
-        )}
-        {patient.STATUS === 'onHold' && (
-          <View style={styles.statusContainer}>
-            {/* <MaterialCommunityIcons name="pause-circle" size={16} color="#FF5722" /> */}
-            <Text style={[styles.statusText, { color: '#FF5722' }]}>On Hold</Text>
-            <View>
-              {patient.CASE_TYPE && (
-                <Text style={styles.consultType}>• {patient.CASE_TYPE}</Text>
-              )}
-              {patient.REFERRED_BY_PHYSICIAN && (
-                <Text style={styles.referredBy} numberOfLines={1}>
-                  {patient.REFERRED_BY_PHYSICIAN}
-                </Text>
-              )}
-              {patient.Last_visit && (
-                <Text style={styles.lastVisit}>{patient.Last_visit}</Text>
-              )}
-            </View>
-          </View>
-        )}
-        {!patient.STATUS && <View >
-          {/* {patient.type && (
-          <Text style={styles.consultType}>{patient.type}</Text>
-        )} */}
-          {patient.REFERRED_BY_PHYSICIAN && (
-            <Text style={styles.referredBy}>
-              {patient.REFERRED_BY_PHYSICIAN}
-            </Text>
-          )}
-          {patient.Last_visit && (
-            <Text style={styles.lastVisit}>{patient.Last_visit}</Text>
-          )}
-        </View>}
-      </View></View>
-
-    <View style={styles.consultInfo}>
-      <View style={styles.rightSection}>
-        {patient.hasVideo && (
-          <TouchableOpacity style={styles.iconButton}>
-            <MaterialCommunityIcons name="video" size={20} color={theme.colors.primary} />
-          </TouchableOpacity>
-        )}
-        <TouchableOpacity style={styles.iconButton} onPress={() => setPatientDocuments(patient)}>
-          <MaterialCommunityIcons name="file-document-outline" size={20} color={theme.colors.primary} />
-        </TouchableOpacity>
-      </View>
-    </View>
-
-  </View>
-);
-const InPatientCard = ({ patient, setPatientDocuments }) => (
-  <View>
+  return (
     <View style={styles.patientCard}>
-      <View style={styles.patientMainInfo}>
+      <View>    <View style={styles.patientMainInfo}>
         <View style={styles.nameAndTime}>
-          <Text style={styles.patientName}>{patient.PatientName}</Text>
-          <Text style={styles.uhidText}>{patient.Uhid}</Text>
+          <Text style={styles.patientName}>{patient.PATIENT_NAME}</Text>
+          <Text style={styles.uhidText}>{patient.UHID}</Text>
         </View>
         <View style={styles.patientSubInfo}>
           <View style={styles.time}>
             <MaterialCommunityIcons name="account" size={15} color={'#666'} />
-            <Text style={styles.ageGender}>{patient.Age} Age | {patient.Gender} | {patient.CaseType}</Text>
+            <Text style={styles.ageGender}>{patient.AGE} Age | {patient.Sex}</Text>
           </View>
 
-
-
+          <View style={styles.time}>
+            <MaterialCommunityIcons name="clock" size={15} color={'#666'} />
+            <Text style={styles.ageGender}>{patient.Appointment_Time}</Text>
+          </View>
         </View>
       </View>
+        <View style={styles.statusSection}>
+          {patient.STATUS === 'waiting' && (
+            <View style={styles.statusContainer}>
+              <Text style={[styles.statusText, { color: '#FFA500' }]}>
+                Waiting
+              </Text>
+              <View >
+                {patient.CASE_TYPE && (
+                  <Text style={styles.consultType}>• {patient.CASE_TYPE}</Text>
+                )}
+                {patient.REFERRED_BY_PHYSICIAN && (
+                  <Text style={styles.referredBy} numberOfLines={1}>
+                    {patient.REFERRED_BY_PHYSICIAN}
+                  </Text>
+                )}
+                {patient.Last_visit && (
+                  <Text style={styles.lastVisit}>{patient.Last_visit}</Text>
+                )}
+              </View>
+            </View>
+          )}
+          {patient.STATUS === 'Completed' && (
+            <View style={styles.statusContainer}>
+              <View>
+                <Text style={[styles.statusText, { color: '#4CAF50' }]}>Completed</Text>
+                {
+                  patient.Last_visit && <Text style={styles.consultType}>Last Visit:</Text>
+                }            </View>
+              <View>
+                {patient.CASE_TYPE && (
+                  <Text style={styles.consultType}>• {patient.CASE_TYPE}</Text>
+                )}
+                {patient.REFERRED_BY_PHYSICIAN && (
+                  <Text style={styles.referredBy} numberOfLines={1}>
+                    {patient.REFERRED_BY_PHYSICIAN}
+                  </Text>
+                )}
+                {patient.Last_visit && (
+                  <Text style={styles.lastVisit}>{patient.Last_visit}</Text>
+                )}
+              </View>
+            </View>
+          )}
+          {patient.STATUS === 'onHold' && (
+            <View style={styles.statusContainer}>
+              <Text style={[styles.statusText, { color: '#FF5722' }]}>On Hold</Text>
+              <View>
+                {patient.CASE_TYPE && (
+                  <Text style={styles.consultType}>• {patient.CASE_TYPE}</Text>
+                )}
+                {patient.REFERRED_BY_PHYSICIAN && (
+                  <Text style={styles.referredBy} numberOfLines={1}>
+                    {patient.REFERRED_BY_PHYSICIAN}
+                  </Text>
+                )}
+                {patient.Last_visit && (
+                  <Text style={styles.lastVisit}>{patient.Last_visit}</Text>
+                )}
+              </View>
+            </View>
+          )}
+          {!patient.STATUS && <View >
+            {patient.REFERRED_BY_PHYSICIAN && (
+              <Text style={styles.referredBy}>
+                {patient.REFERRED_BY_PHYSICIAN}
+              </Text>
+            )}
+            {patient.Last_visit && (
+              <Text style={styles.lastVisit}>{patient.Last_visit}</Text>
+            )}
+          </View>}
+        </View></View>
 
       <View style={styles.consultInfo}>
         <View style={styles.rightSection}>
-          {patient.hasVideo && (
-            <TouchableOpacity style={styles.iconButton}>
-              <MaterialCommunityIcons name="video" size={20} color={theme.colors.primary} />
-            </TouchableOpacity>
-          )}
+          {/* {patient.hasVideo && ( */}
+          {/* <TouchableOpacity style={styles.iconButton} onPress={handleVideoConsultation}>
+            <MaterialCommunityIcons name="video" size={20} color={theme.colors.primary} />
+          </TouchableOpacity> */}
+          {/* )} */}
           <TouchableOpacity style={styles.iconButton} onPress={() => setPatientDocuments(patient)}>
             <MaterialCommunityIcons name="file-document-outline" size={20} color={theme.colors.primary} />
           </TouchableOpacity>
         </View>
       </View>
-    </View>
-    <View style={styles.patientDetails}>
 
-      <View style={styles.statusSection}>
-        <View style={styles.statusContainer}>
-          {/* <MaterialCommunityIcons name="clock-outline" size={16} color="#FFA500" /> */}
-          <Text style={[styles.statusText, { color: '#FFA500' }]}>
-            {patient.Status}
-          </Text>
-          <View >
-            {patient.CaseType && (
-              <Text style={styles.consultType}>•{patient.IpNo}</Text>
-            )}
-            {/* {patient.REFERRED_BY_PHYSICIAN && (
-                <Text style={styles.referredBy} numberOfLines={1}>
-                  {patient.REFERRED_BY_PHYSICIAN}
-                </Text>
-              )}
-              {patient.Last_visit && (
-                <Text style={styles.lastVisit}>{patient.Last_visit}</Text>
-              )} */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={isVideoModalVisible}
+        onRequestClose={() => setIsVideoModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Video Consultation</Text>
+              <TouchableOpacity onPress={() => setIsVideoModalVisible(false)}>
+                <MaterialCommunityIcons name="close" size={24} color={theme.colors.primary} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.modalBody}>
+              <Text style={styles.modalLabel}>Patient Details:</Text>
+              <Text style={styles.modalText}>Name: {patient.PATIENT_NAME}</Text>
+              <Text style={styles.modalText}>UHID: {patient.UHID}</Text>
+
+              <View style={styles.videoContainer}>
+                <View style={styles.videoPlaceholder}>
+                  <MaterialCommunityIcons name="video" size={50} color="#666" />
+                  <Text style={styles.videoPlaceholderText}>Video consultation will start here</Text>
+                </View>
+              </View>
+            </View>
+
+            <View style={styles.modalFooter}>
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={() => setIsVideoModalVisible(false)}
+              >
+                <Text style={styles.cancelButtonText}>End Call</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.scheduleButton}
+                onPress={() => {
+                  // Here you would implement the actual video call functionality
+                  console.log('Starting video call with:', patient.PATIENT_NAME);
+                }}
+              >
+                <Text style={styles.scheduleButtonText}>Start Call</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    </View>
+  );
+};
+const InPatientCard = ({ patient, setPatientDocuments }) => {
+
+
+  return (
+    <View>
+      <View style={styles.patientCard}>
+        <View style={styles.patientMainInfo}>
+          <View style={styles.nameAndTime}>
+            <Text style={styles.patientName}>{patient.PatientName}</Text>
+            <Text style={styles.uhidText}>{patient.Uhid}</Text>
+          </View>
+          <View style={styles.patientSubInfo}>
+            <View style={styles.time}>
+              <MaterialCommunityIcons name="account" size={15} color={'#666'} />
+              <Text style={styles.ageGender}>{patient.Age} Age | {patient.Gender} | {patient.CaseType}</Text>
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.consultInfo}>
+          <View style={styles.rightSection}>
+            <TouchableOpacity style={styles.iconButton} onPress={() => setPatientDocuments(patient)}>
+              <MaterialCommunityIcons name="file-document-outline" size={20} color={theme.colors.primary} />
+            </TouchableOpacity>
           </View>
         </View>
       </View>
-      <View style={styles.time}>
-        <MaterialCommunityIcons name="clock" size={12} color={'#ddd'} />
-        <Text style={styles.admitted}>Admitted: {patient.AdmissionDate.replaceAll('/', '-')}</Text>
+      <View style={styles.patientDetails}>
+        <View style={styles.statusSection}>
+          <View style={styles.statusContainer}>
+            <Text style={[styles.statusText, { color: '#FFA500' }]}>
+              {patient.Status}
+            </Text>
+            <View >
+              {patient.CaseType && (
+                <Text style={styles.consultType}>•{patient.IpNo}</Text>
+              )}
+            </View>
+          </View>
+        </View>
+        <View style={styles.time}>
+          <MaterialCommunityIcons name="clock" size={12} color={'#ddd'} />
+          <Text style={styles.admitted}>Admitted: {patient.AdmissionDate.replaceAll('/', '-')}</Text>
+        </View>
       </View>
-    </View>
-  </View>
-);
 
-const OTScheduleCard = ({ surgery,hideChecklist,initialModalTab,checklistVisible ,setChecklistVisible}) => (
+    </View>
+  );
+};
+
+const OTScheduleCard = ({ surgery, hideChecklist, initialModalTab, checklistVisible, setChecklistVisible }) => (
   <View style={styles.otCard}>
     <View style={styles.patientCard}>
       <View style={styles.patientMainInfo}>
@@ -207,9 +243,6 @@ const OTScheduleCard = ({ surgery,hideChecklist,initialModalTab,checklistVisible
             <MaterialCommunityIcons name="account" size={15} color={'#666'} />
             <Text style={styles.ageGender}>{surgery.AGE} Age | {surgery.SEX} </Text>
           </View>
-
-
-
         </View>
       </View>
 
@@ -220,22 +253,20 @@ const OTScheduleCard = ({ surgery,hideChecklist,initialModalTab,checklistVisible
               <MaterialCommunityIcons name="video" size={20} color={theme.colors.primary} />
             </TouchableOpacity>
           )}
-          <TouchableOpacity style={[styles.iconButton,{backgroundColor:isInvestigationComplete(surgery)?'rgba(28, 141, 28, 0.28)':'rgba(216, 141, 29, 0.28)'}]} onPress={()=>setChecklistVisible(true)}>
-            <MaterialCommunityIcons name="view-list" size={20} color={isInvestigationComplete(surgery)?'green':'orange'} />
+          <TouchableOpacity style={[styles.iconButton, { backgroundColor: isInvestigationComplete(surgery) ? 'rgba(28, 141, 28, 0.28)' : 'rgba(216, 141, 29, 0.28)' }]} onPress={() => setChecklistVisible(true)}>
+            <MaterialCommunityIcons name="view-list" size={20} color={isInvestigationComplete(surgery) ? 'green' : 'orange'} />
           </TouchableOpacity>
         </View>
       </View>
     </View>
 
     <View style={styles.patientDetails}>
-
       <View style={styles.statusSection}>
         <View style={styles.statusContainer}>
           <Text style={[styles.statusText, { color: '#FFA500' }]}>
             Emergency
           </Text>
           <View >
-
             <Text style={styles.consultType}>• {surgery.THEATRENAME}</Text>
           </View>
         </View>
@@ -246,7 +277,6 @@ const OTScheduleCard = ({ surgery,hideChecklist,initialModalTab,checklistVisible
       </View>
     </View>
     <Text style={styles.procedureTitle}>{surgery.SURGERY}</Text>
-
     <View style={styles.procedureSection}>
       <>
         <Text style={styles.procedureDetails}>
@@ -254,17 +284,16 @@ const OTScheduleCard = ({ surgery,hideChecklist,initialModalTab,checklistVisible
         </Text>
       </>
       <View style={styles.teamSection}>
-
         <Text style={styles.teamText}>Team: {surgery.DOCTOR.ActDoctor}, {surgery.DOCTOR.AssistantSurgeon},{surgery.DOCTOR.AttendingDoctor}</Text>
       </View>
     </View>
-    
+
     <PreOpChecklistModal
-            visible={checklistVisible}
-            hideModal={hideChecklist}
-            patient={surgery}
-            initialTab={initialModalTab}
-          />
+      visible={checklistVisible}
+      hideModal={hideChecklist}
+      patient={surgery}
+      initialTab={initialModalTab}
+    />
   </View>
 );
 
@@ -272,9 +301,9 @@ function isInvestigationComplete(patient) {
   return patient.INVESTIGATION.every(investigation => investigation.Status === 'Completed');
 }
 
-export default function ScheduleScreen() {
+export default function ScheduleScreen({ navigation }) {
   const [searchQuery, setSearchQuery] = React.useState('');
-  const [dateRange, setDateRange] = useState(new Date());
+  // const [dateRange, setDateRange] = useState(new Date());
   const [isDatePickerVisible, setDatePickerVisible] = useState(false);
   const [activeTab, setActiveTab] = React.useState('Out - Patients');
   const [checklistVisible, setChecklistVisible] = React.useState(false);
@@ -287,6 +316,10 @@ export default function ScheduleScreen() {
   const [error, setError] = React.useState(null);
   const [patientDocuments, setPatientDocuments] = useState(null)
   const user = useSelector(state => state.auth.user);
+  // const user = User
+  const dispatch = useDispatch();
+  const dateRange = useSelector(state => state.auth.dateRange);
+
   const doctorId = user?.['Doctor Id'];
   const [searchVisible, setSearchVisible] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState('');
@@ -318,32 +351,36 @@ export default function ScheduleScreen() {
   const hideChecklist = () => {
     setChecklistVisible(false);
     setSelectedPatient(null);
+
   };
   const showDatePicker = () => {
     setDatePickerVisible(true);
+    mixpanel.track('Date Picker Opened', User)
+
   };
 
   const hideDatePicker = () => {
     setDatePickerVisible(false);
+    mixpanel.track('Date Picker Closed', User)
   };
 
   const handleConfirm = (date) => {
-    setDateRange(date);
+    dispatch(setDateRange(date));
     hideDatePicker();
+    mixpanel.track('Date Picker Confirmed', { date, User })
+
   };
   const selectedDateString = moment(dateRange).format('DD-MM-YYYY');
-  const filteredOutPatients = OutPatienstData.filter(appointment =>
+  const filteredOutPatients = OutPatienstData.sort((a, b) => a.Appointment_Time.localeCompare(b.Appointment_Time)).filter(appointment =>
     appointment.Appointment_Date === selectedDateString && appointment.PATIENT_NAME.toLowerCase().includes(searchQuery.toLowerCase()) && appointment.STATUS.toLowerCase().includes(selectedFilter.toLowerCase())
   );
-  const filteredInPatients = inPatients.filter(patient =>
+  const filteredInPatients = INPatientsData.filter(patient =>
     patient.AdmissionDate.replaceAll('/', '-') === selectedDateString && patient.PatientName.toLowerCase().includes(searchQuery.toLowerCase())
   );
   const filteredOtPatients = OTPatientsData.filter(patient =>
-    // patient.SurgeryDate === selectedDateString
+    patient.SurgeryDate === selectedDateString &&
     patient.PATIENT_NAME.toLowerCase().includes(searchQuery.toLowerCase())
   );
-
-
   return (
     <>
       {patientDocuments ?
@@ -361,6 +398,7 @@ export default function ScheduleScreen() {
                   placeholder="Search patients by name, room or ID..."
                   onChangeText={setSearchQuery}
                   value={searchQuery}
+                  onSubmitEditing={() => mixpanel.track('Search Bar', { searchQuery, User })}
                   style={styles.searchBar}
                   inputStyle={styles.searchInput}
                   placeholderTextColor="#999"
@@ -377,7 +415,7 @@ export default function ScheduleScreen() {
                             styles.filterButton,
                             selectedFilter === filter && styles.activeFilterButton
                           ]}
-                          onPress={() => setSelectedFilter(selectedFilter === filter ? '' : filter)}
+                          onPress={() => [setSelectedFilter(selectedFilter === filter ? '' : filter), mixpanel.track('Filter Selected', { filter, User })]}
                         >
                           <Text style={[
                             styles.filterText,
@@ -391,7 +429,7 @@ export default function ScheduleScreen() {
               </View>
             </View>
           ) : <View style={styles.header}>
-            <TouchableOpacity>
+            <TouchableOpacity onPress={() => navigation.goBack()}>
               <MaterialCommunityIcons name="chevron-left" size={30} color={theme.colors.primary} />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>My Schedule</Text>
@@ -409,6 +447,7 @@ export default function ScheduleScreen() {
               onConfirm={handleConfirm}
               onCancel={hideDatePicker}
               date={dateRange}
+              maximumDate={moment().add(3, 'months').toDate()}
             />
           </View>}
 
@@ -418,7 +457,7 @@ export default function ScheduleScreen() {
                 styles.scheduleTypeButton,
                 activeTab === 'Out - Patients' && styles.activeScheduleTypeButton
               ]}
-              onPress={() => setActiveTab('Out - Patients')}
+              onPress={() => [setActiveTab('Out - Patients'), trackEvent('OP Schedule Selected', user)]}
             >
               <MaterialCommunityIcons name="account-group" size={24} color={activeTab === 'Out - Patients' ? theme.colors.primary : '#666'} />
 
@@ -432,7 +471,7 @@ export default function ScheduleScreen() {
                 styles.scheduleTypeButton,
                 activeTab === 'In - Patients' && styles.activeScheduleTypeButton
               ]}
-              onPress={() => setActiveTab('In - Patients')}
+              onPress={() => [setActiveTab('In - Patients'), trackEvent('IP Schedule Selected', user)]}
             >
               <MaterialCommunityIcons name="bed" size={24} color={activeTab === 'In - Patients' ? theme.colors.primary : '#666'} />
 
@@ -446,7 +485,7 @@ export default function ScheduleScreen() {
                 styles.scheduleTypeButton,
                 activeTab === 'OT Schedule' && styles.activeScheduleTypeButton
               ]}
-              onPress={() => setActiveTab('OT Schedule')}
+              onPress={() => [setActiveTab('OT Schedule'), trackEvent('OT Schedule Selected', user)]}
             >
               <MaterialCommunityIcons name="medical-bag" size={24} color={activeTab === 'OT Schedule' ? theme.colors.primary : '#666'} />
 
@@ -470,7 +509,7 @@ export default function ScheduleScreen() {
                 <View style={styles.noAppointments}>
                   <Image source={require('../../assets/images/noAppoinments.png')} />
                   <Text style={styles.noAppoinmentsHeader}>Not Schedule Yet</Text>
-                  <Text style={styles.noAppoinmentsText}>You don't have any appoinments scheduled {'\n'} for {moment(dateRange).format('MMMM DD, YYYY')}</Text>
+                  <Text style={styles.noAppoinmentsText}>You don't have any appoinments scheduled {'\n'} for {moment(dateRange).format('MMMM DD, YYYY') === moment().format('MMMM DD, YYYY') ? 'Today' : moment(dateRange).format('MMMM DD, YYYY')}</Text>
                 </View>
             ) : activeTab === 'In - Patients' ? (
               filteredInPatients.length > 0 ?
@@ -483,19 +522,19 @@ export default function ScheduleScreen() {
                 )) : <View style={styles.noAppointments}>
                   <Image source={require('../../assets/images/noAppoinments.png')} />
                   <Text style={styles.noAppoinmentsHeader}>Not Schedule Yet</Text>
-                  <Text style={styles.noAppoinmentsText}>You don't have any In-Patients scheduled {'\n'} for {moment(dateRange).format('MMMM DD, YYYY')}</Text>
+                  <Text style={styles.noAppoinmentsText}>You don't have any In-Patients scheduled {'\n'} for {moment(dateRange).format('MMMM DD, YYYY') === moment().format('MMMM DD, YYYY') ? 'Today' : moment(dateRange).format('MMMM DD, YYYY')}</Text>
                 </View>
             ) : (
               filteredOtPatients.length > 0 ? filteredOtPatients?.map((surgery, index) => (
                 <Card key={index} style={styles.surgeryCard}>
                   <Card.Content>
-                    <OTScheduleCard surgery={surgery} hideChecklist={hideChecklist} checklistVisible={checklistVisible} initialModalTab={initialModalTab} setChecklistVisible={setChecklistVisible}/>
+                    <OTScheduleCard surgery={surgery} hideChecklist={hideChecklist} checklistVisible={checklistVisible} initialModalTab={initialModalTab} setChecklistVisible={setChecklistVisible} />
                   </Card.Content>
                 </Card>
               )) : <View style={styles.noAppointments}>
                 <Image source={require('../../assets/images/noAppoinments.png')} />
                 <Text style={styles.noAppoinmentsHeader}>Not Schedule Yet</Text>
-                <Text style={styles.noAppoinmentsText}>You don't have any OT-Patients scheduled {'\n'} for {moment(dateRange).format('MMMM DD, YYYY')}</Text>
+                <Text style={styles.noAppoinmentsText}>You don't have any OT-Patients scheduled {'\n'} for {moment(dateRange).format('MMMM DD, YYYY') === moment().format('MMMM DD, YYYY') ? 'Today' : moment(dateRange).format('MMMM DD, YYYY')}</Text>
               </View>
             )}
           </ScrollView>
@@ -607,17 +646,17 @@ const styles = StyleSheet.create({
   nameAndTime: {
     flexDirection: 'row',
     justifyContent: 'flex-start',
-    flexWrap:'wrap',
+    flexWrap: 'wrap',
     gap: 0,
-    width:'95%',
+    width: '95%',
     alignItems: 'center',
-    lineHeight:'0.2'
+    lineHeight: '0.2'
   },
   patientName: {
     fontSize: width * 0.042,
     fontFamily: 'Poppins-SemiBold',
     color: '#333',
-    paddingRight:5
+    paddingRight: 5
 
   },
   appointmentTime: {
@@ -745,7 +784,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     // marginTop: height * 0.01,
-    alignItems:'center'
+    alignItems: 'center'
   },
   procedureTitle: {
     fontSize: width * 0.03,
@@ -863,5 +902,92 @@ const styles = StyleSheet.create({
   },
   searchBarContainer: {
     width: width * .8,
-  }
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    width: width * 0.9,
+    backgroundColor: 'white',
+    borderRadius: 10,
+    padding: 20,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    ...typography.h3,
+    color: theme.colors.primary,
+  },
+  modalBody: {
+    marginBottom: 20,
+  },
+  modalLabel: {
+    ...typography.h4,
+    color: theme.colors.primary,
+    marginBottom: 10,
+  },
+  modalText: {
+    fontSize: width * 0.035,
+    fontFamily: 'Poppins-Regular',
+    color: '#333',
+    marginBottom: 5,
+  },
+  videoContainer: {
+    marginTop: 20,
+    backgroundColor: '#f5f5f5',
+    borderRadius: 10,
+    padding: 20,
+    alignItems: 'center',
+  },
+  videoPlaceholder: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  videoPlaceholderText: {
+    marginTop: 10,
+    fontSize: width * 0.032,
+    fontFamily: 'Poppins-Regular',
+    color: '#666',
+    textAlign: 'center',
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 10,
+  },
+  cancelButton: {
+    padding: 10,
+    borderRadius: 5,
+    borderWidth: 1,
+    borderColor: theme.colors.primary,
+  },
+  cancelButtonText: {
+    color: theme.colors.primary,
+    fontFamily: 'Poppins-Regular',
+  },
+  scheduleButton: {
+    padding: 10,
+    borderRadius: 5,
+    backgroundColor: theme.colors.primary,
+  },
+  scheduleButtonText: {
+    color: 'white',
+    fontFamily: 'Poppins-Regular',
+  },
 }); 

@@ -73,7 +73,7 @@ console.log(user)
         onConfirm={confirmLogout}
       />
       <View style={styles.header}>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={()=>navigation.goBack()}>
           <MaterialCommunityIcons name="chevron-left" size={30} color={theme.colors.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Profile</Text>
@@ -90,7 +90,7 @@ console.log(user)
               style={styles.profileImage}
             />
             <View style={styles.profileInfo}>
-              <Text style={styles.doctorName}>{user['Doctor Name']}</Text>
+              <Text style={styles.doctorName}>{user.DoctorName}</Text>
               <Text style={styles.specialization}>{profileData.specialization}</Text>
               <TouchableOpacity>
                 <Text style={styles.editProfileText}>Edit Profile</Text>

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -18,6 +18,9 @@ import { useDispatch } from 'react-redux';
 import { authService } from '../api/services/authService';
 import { setToken, setUser, setLoading, setError } from '../store/slices/authSlice';
 import SplashScreen from './SplashScreen';
+import smsService from '../api/services/smsService';
+import mixpanel, { identifyUser } from '../utils/mixpanel';
+import { User } from '../utils/constants';
 
 const { width } = Dimensions.get('window');
 
@@ -32,10 +35,22 @@ const LoginScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [isVisible, setIsVisible] = useState(false);
+  const [randomNumber, setRandomNumber] = useState(0);
+  const [resendAttempts, setResendAttempts] = useState(0);
+  const [resendTimer, setResendTimer] = useState(0);
+  const [isOtpGenerated, setIsOtpGenerated] = useState(false);
+
+  useEffect(() => {
+    let interval;
+    if (resendTimer > 0) {
+      interval = setInterval(() => {
+        setResendTimer((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [resendTimer]);
 
   const handleLogin = async () => {
-    console.log(authService)
-
     if (!credentials.mobileno) {
       Alert.alert('Error', 'Please enter mobile number');
       return;
@@ -44,24 +59,48 @@ const LoginScreen = ({ navigation }) => {
     setLoading(true);
     setError('');
     try {
-
-setScreenCount(2)
-
-      // const loginResponse = await authService.login(credentials);
-
-      // if (loginResponse) {
-      //   dispatch(setUser(loginResponse));
-      //   setIsVisible(true);
-
-      //   setTimeout(() => {
-      //     setIsVisible(false);
-      //     navigation.navigate('Dashboard');
-      //   }, 3000);
-      // }
+      const min = 100000;
+      const max = 999999;
+      const randomNum = Math.floor(Math.random() * (max - min + 1)) + min;
+      setRandomNumber(randomNum);
+      setIsOtpGenerated(true);
+      setResendTimer(30); // 30 seconds timer
+      setOtp(randomNum.toString().split(''))
+      // First time login - use primary vendor
+      // const primarySmsResponse = await smsService.primarySms(credentials.mobileno, `${randomNum} is you OTP for Doctors App to verify your number`);
+      // console.log(primarySmsResponse)
+      setScreenCount(2);
     } catch (error) {
       setError(error.message);
-      console.log(error)
+      console.log(error);
       Alert.alert('Login Failed', error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+  // console.log(randomNumber)
+  const handleResendOtp = async () => {
+    if (resendAttempts >= 5 || resendTimer > 0) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const min = 100000;
+      const max = 999999;
+      const randomNum = Math.floor(Math.random() * (max - min + 1)) + min;
+      setRandomNumber(randomNum);
+      setResendTimer(30); // Reset timer to 30 seconds
+
+      // Use secondary vendor for resend
+      // const secondarySmsResponse = await smsService.secondarySms(credentials.mobileno, randomNum);
+      // console.log(secondarySmsResponse)
+      setOtp(randomNum.toString().split(''))
+
+      setResendAttempts(prev => prev + 1);
+    } catch (error) {
+      setError(error.message);
+      Alert.alert('Resend Failed', error.message);
     } finally {
       setLoading(false);
     }
@@ -85,6 +124,50 @@ setScreenCount(2)
       otpInputs.current[index - 1].focus();
     }
   };
+
+  const handleVerifyOtp = async () => {
+    try {
+      const loginResponse = await authService.login(credentials);
+      console.log(loginResponse)
+      const validOtp = otp.join('') === randomNumber.toString()
+      if (!validOtp) {
+        Alert.alert('Error', 'Invalid OTP')
+        return;
+      }
+
+      if (loginResponse.Message === "Invalid mobile number") {
+        Alert.alert(
+          'No Doctor Found',
+          'No doctor exists with this mobile number. Please contact support if you believe this is an error.',
+          [{ text: 'OK', onPress: () => setScreenCount(1) }]
+        );
+        return;
+      }
+
+      // if (loginResponse.error) {
+      //   Alert.alert(
+      //     'No Doctor Found',
+      //     'No doctor exists with this mobile number. Please contact support if you believe this is an error.',
+      //     [{ text: 'OK', onPress: () => setScreenCount(1) }]
+      //   );
+      //   return;
+      // }
+
+      if (loginResponse && validOtp) {
+        dispatch(setUser(loginResponse));
+        setIsVisible(true);
+
+        setTimeout(() => {
+          setIsVisible(false);
+          mixpanel.track('Login', User)
+          navigation.navigate('Dashboard');
+        }, 3000);
+      }
+    } catch (error) {
+      console.log(error)
+      Alert.alert('Error', error.message)
+    }
+  }
 
   return (
     <>
@@ -135,13 +218,13 @@ setScreenCount(2)
                   style={styles.input}
                   placeholder="Enter your mobile number"
                   value={credentials.mobileno}
-                  onChangeText={(text) => setCredentials({ ...credentials, mobileno: text })}
+                  onChangeText={(text) => setCredentials({ mobileno: text })}
                   placeholderTextColor="#666"
                   keyboardType="phone-pad"
                 />
               </View>}
 
-{screenCount==2&&              <View style={styles.otpContainer}>
+              {screenCount == 2 && <View style={styles.otpContainer}>
                 {otp.map((digit, index) => (
                   <TextInput
                     key={index}
@@ -157,10 +240,27 @@ setScreenCount(2)
                 ))}
               </View>}
 
-              <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-                <Text style={styles.loginButtonText}>{screenCount===1?'Get OTP':'Verify OTP'}</Text>
-              </TouchableOpacity>
-              {screenCount === 2 && <View style={styles.resendOTPContainer}><Text style={styles.resendOTPText}>Didn't recieve the OTP?</Text><TouchableOpacity ><Text style={styles.resendOTPButton}>Resend OTP</Text></TouchableOpacity></View>}
+              {screenCount === 1 ? <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
+                <Text style={styles.loginButtonText}>Get OTP</Text>
+              </TouchableOpacity> : <TouchableOpacity style={styles.loginButton} onPress={handleVerifyOtp}>
+                <Text style={styles.loginButtonText}>Verify OTP</Text>
+              </TouchableOpacity>}
+              {screenCount === 2 && (
+                <View style={styles.resendOTPContainer}>
+                  <Text style={styles.resendOTPText}>Didn't receive the OTP?</Text>
+                  <TouchableOpacity
+                    onPress={handleResendOtp}
+                    disabled={resendAttempts >= 5 || resendTimer > 0 || !isOtpGenerated}
+                  >
+                    <Text style={[
+                      styles.resendOTPButton,
+                      (resendAttempts >= 5 || resendTimer > 0 || !isOtpGenerated) && styles.disabledResendButton
+                    ]}>
+                      {resendTimer > 0 ? `Resend OTP (${resendTimer}s)` : 'Resend OTP'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
             </View>
           </ScrollView>
 
@@ -333,7 +433,7 @@ const styles = StyleSheet.create({
   },
   otpInput: {
     width: 45,
-    height: 45,
+    // height: 45,
     borderWidth: 1,
     borderColor: '#B4236C',
     borderRadius: 8,
@@ -359,18 +459,21 @@ const styles = StyleSheet.create({
     color: '#B4236C',
     fontSize: 12
   },
-  verifyTextHeader:{
-    fontFamily:'Poppins-SemiBold',
-    fontSize:18,
-    color:'#b4236c',
-    marginBottom:5
+  verifyTextHeader: {
+    fontFamily: 'Poppins-SemiBold',
+    fontSize: 18,
+    color: '#b4236c',
+    marginBottom: 5
   },
-  verifyTextSubHeader:{
-    fontFamily:'Poppins-SemiBold',
-    fontSize:14,
-    color:'#666',
-    marginBottom:20
-  }
+  verifyTextSubHeader: {
+    fontFamily: 'Poppins-SemiBold',
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 20
+  },
+  disabledResendButton: {
+    color: '#999',
+  },
 });
 
 export default LoginScreen; 

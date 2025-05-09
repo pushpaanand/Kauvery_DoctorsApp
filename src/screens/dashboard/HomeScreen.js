@@ -1,13 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, SafeAreaView, ActivityIndicator, ScrollView, TouchableOpacity, Dimensions, Image, Platform, StatusBar } from 'react-native';
-import { Text, Searchbar, Card } from 'react-native-paper';
+import { Text, Searchbar, Card, Menu, Divider } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { theme } from '../../utils/theme';
 import { patientService } from '../../api/services/patientService';
-import { COLORS, OTPatientsData, OutPatienstData } from '../../utils/constants';
+import { COLORS, INPatientsData, OTPatientsData, OutPatienstData, User, user } from '../../utils/constants';
 import moment from 'moment';
 import DateTimePickerModal from "react-native-modal-datetime-picker";
+import mixpanel from '../../utils/mixpanel';
+import { setDateRange } from '../../store/slices/authSlice';
 
 const STATUSBAR_HEIGHT = Platform.OS === 'ios' ? 44 : StatusBar.currentHeight;
 const { width, height } = Dimensions.get('window');
@@ -15,13 +17,15 @@ const { width, height } = Dimensions.get('window');
 // Update the color palette to use primary color variations
 
 // Update the DoctorTypeCard component for a more compact design
-const DoctorTypeCard = ({ icon, title, count, color, length}) => (
+const DoctorTypeCard = ({ icon, title, count, color, length }) => (
 
   <TouchableOpacity
     style={[styles.statCard, {
       backgroundColor: '#FFFFFF',
-      borderColor: '#fff',
-      flexDirection:length>1?'column':'row',
+      borderColor: title!=='Surgeries' ?'#eee':'#fff',
+      // flexDirection: length > 1 ? 'column' : 'row',
+      flexDirection: 'column',
+
     }]}
   >
     <View style={styles.statCardContent}>
@@ -36,8 +40,10 @@ const DoctorTypeCard = ({ icon, title, count, color, length}) => (
       <Text style={styles.statCount}>{count}</Text>
 
     </View>
-   
-      <Text style={[styles.statTitle,{marginTop:length>1?0:10,paddingLeft:length>1?0:10}]}>{title}</Text>
+
+    {/* <Text style={[styles.statTitle, { marginTop: length > 1 ? 0 : 10, paddingLeft: length > 1 ? 0 : 10 }]}>{title}</Text> */}
+    <Text style={styles.statTitle}>{title}</Text>
+
     {/* </View> */}
 
   </TouchableOpacity>
@@ -53,7 +59,7 @@ const ProgressBar = ({ current, total }) => (
     <View style={styles.progressBarContainer}>
       <View style={[styles.progressBar, { width: `${(current / total) * 100}%` }]} />
     </View>
-    <Text style={styles.progressText}>Remaining: {total-current}</Text>
+    <Text style={styles.progressText}>Remaining: {total - current}</Text>
 
   </View>
 );
@@ -61,7 +67,7 @@ const ProgressBar = ({ current, total }) => (
 
 
 export default function HomeScreen({ navigation }) {
-  const [dateRange, setDateRange] = useState(new Date());
+  // const [dateRange, setDateRange] = useState(new Date());
   const [searchQuery, setSearchQuery] = React.useState('');
   const [outPatients, setOutPatients] = useState([]);
   const [inPatients, setInPatients] = useState([]);
@@ -69,8 +75,16 @@ export default function HomeScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const user = useSelector(state => state.auth.user);
+  const dateRange = useSelector(state=>state.auth.dateRange)
+  const dispatch = useDispatch();
+  // const user = User
   const doctorId = user?.['Doctor Id'];
   const [isDatePickerVisible, setDatePickerVisible] = useState(false);
+  const [menuVisible, setMenuVisible] = useState(false);
+  const [selectedLocation, setSelectedLocation] = useState(user.DocBranch[0].BranchName);
+
+
+
 
   useEffect(() => {
     const fetchInPatients = async () => {
@@ -82,7 +96,6 @@ export default function HomeScreen({ navigation }) {
         setOutPatients(OutPatientsData);
         const OtPatientsData = await patientService.getOTPatients(doctorId);
         setOtPatients(OtPatientsData)
-
       } catch (err) {
         setError(err.message);
         console.error('Error fetching in-patients:', err);
@@ -103,17 +116,19 @@ export default function HomeScreen({ navigation }) {
   const generateWeekDays = () => {
     const days = [];
     const startDate = new Date(dateRange);
+    const threeMonthsFromNow = new Date();
+    threeMonthsFromNow.setMonth(threeMonthsFromNow.getMonth() + 3);
 
     for (let i = 0; i < 7; i++) {
       const date = new Date(dateRange);
       date.setDate(startDate.getDate() + i);
-      
+
       const dateString = moment(date).format('DD-MM-YYYY');
       const hasOutPatientAppts = OutPatienstData.some(patient =>
         patient.Appointment_Date === dateString
       );
 
-      const hasInPatientAppts = inPatients.some(patient =>
+      const hasInPatientAppts = INPatientsData.some(patient =>
         patient.AdmissionDate.replaceAll('/', '-') === dateString
       );
       const hasAppts = hasOutPatientAppts || hasInPatientAppts;
@@ -123,7 +138,8 @@ export default function HomeScreen({ navigation }) {
         fullDate: dateString,
         isSelected: date.toDateString() === dateRange.toDateString(),
         hasAppointments: hasAppts,
-        isToday: date.toDateString() === new Date().toDateString()
+        isToday: date.toDateString() === new Date().toDateString(),
+        isBeyondThreeMonths: date > threeMonthsFromNow
       });
     }
     return days;
@@ -132,27 +148,39 @@ export default function HomeScreen({ navigation }) {
   // Add this function for week navigation
   const handleWeekChange = (direction) => {
     const newDate = new Date(dateRange);
+    const threeMonthsFromNow = new Date();
+    threeMonthsFromNow.setMonth(threeMonthsFromNow.getMonth() + 3);
+
     if (direction === 'next') {
-      newDate.setDate(newDate.getDate() + 7);
+      // Check if next date would be beyond 3 months
+      const nextDate = new Date(newDate);
+      nextDate.setDate(nextDate.getDate() + 1);
+      if (nextDate <= threeMonthsFromNow) {
+        newDate.setDate(newDate.getDate() + 1);
+       dispatch(setDateRange(newDate));
+      }
     } else {
-      newDate.setDate(newDate.getDate() - 7);
+      newDate.setDate(newDate.getDate() - 1);
+     dispatch(setDateRange(newDate));
     }
-    setDateRange(newDate);
   };
 
 
 
   const showDatePicker = () => {
     setDatePickerVisible(true);
+    mixpanel.track('Date Picker Opened', user)
   };
 
   const hideDatePicker = () => {
     setDatePickerVisible(false);
+    mixpanel.track('Date Picker Closed', user)
   };
 
   const handleConfirm = (date) => {
-    setDateRange(date);
+    dispatch(setDateRange(date))
     hideDatePicker();
+    mixpanel.track('Date Picker Confirmed', user)
   };
 
   // Function to get the label for the selected date
@@ -178,27 +206,31 @@ export default function HomeScreen({ navigation }) {
     const selectedDateOutPatients = OutPatienstData.filter(patient =>
       patient.Appointment_Date === selectedDate
     );
-    const selectedInPatients = inPatients.filter(patient =>
+    const selectedInPatients = INPatientsData.filter(patient =>
       patient.AdmissionDate.replaceAll('/', '-') === selectedDate
     );
 
 
-
+    const selectedotPatients = OTPatientsData.filter(patient =>
+      patient.SurgeryDate === selectedDateString
+    );
+    console.log(selectedotPatients)
     if (selectedDateOutPatients.length > 0) {
       cards.push(
-        <View style={styles.cardProgressContainer}>
-          <DoctorTypeCard
-            key="outpatients"
-            icon="account-group"
-            title="Out Patients"
-            count={selectedDateOutPatients.length.toString()}
-            color={COLORS.primary}
-            length={cards.length}
-          />
-          <ProgressBar
-            current={selectedDateOutPatients.length.toString()}
-            total={selectedDateOutPatients.length.toString()}
-          /></View>
+        // <View style={styles.cardProgressContainer}>
+        <DoctorTypeCard
+          key="outpatients"
+          icon="account-group"
+          title="Out Patients"
+          count={selectedDateOutPatients.length.toString()}
+          color={COLORS.primary}
+          length={cards.length}
+        />
+        // <ProgressBar
+        //   current={selectedDateOutPatients.length.toString()}
+        //   total={selectedDateOutPatients.length.toString()}
+        // />
+        // </View>
       );
     }
 
@@ -215,36 +247,67 @@ export default function HomeScreen({ navigation }) {
       );
     }
 
-    // if (OTPatientsData.length > 0) {
-    //   cards.push(
-    //     <DoctorTypeCard
-    //       key="otpatients"
-    //       icon="medical-bag"
-    //       title="Surgeries"
-    //       count={OTPatientsData.length.toString()}
-    //       color={COLORS.primary}
-    //     />
-    //   );
-    // }
+    if (selectedotPatients.length > 0) {
+      cards.push(
+        <DoctorTypeCard
+          key="otpatients"
+          icon="medical-bag"
+          title="Surgeries"
+          count={selectedotPatients.length.toString()}
+          color={COLORS.primary}
+        />
+      );
+    }
     return (
-      <View style={cards.length>1?styles.cardsContainer:styles.lastCardContainer}>
-        {cards.map((card, index) => (
-          <View
-            key={index}
-            style={[
-              styles.cardWrapper,
-              index === cards.length - 1 && styles.lastCard
-            ]}
-          >
-            {card}
-          </View>
-        ))}
-      </View>
+      // <View style={cards.length > 1 ? styles.cardsContainer : styles.lastCardContainer}>
+      //   {cards.map((card, index) => (
+      //     <View
+      //       key={index}
+      //       style={[
+      //         styles.cardWrapper,
+      //         index === cards.length - 1 && styles.lastCard
+      //       ]}
+      //     >
+      //       {card}
+      //     </View>
+      //   ))}
+      // </View>
+      <View style={styles.cardsContainer}>
+           <DoctorTypeCard
+          key="outpatients"
+          icon="account-group"
+          title="Out Patients"
+          count={selectedDateOutPatients.length.toString()}
+          color={COLORS.primary}
+          length={cards.length}
+        />
+              <DoctorTypeCard
+          key="inpatients"
+          icon="bed"
+          title="In Patients"
+          count={selectedInPatients.length.toString()}
+          color={COLORS.primary}
+          length={cards.length}
+        />
+      <DoctorTypeCard
+          key="otpatients"
+          icon="medical-bag"
+          title="Surgeries"
+          count={selectedotPatients.length.toString()}
+          color={COLORS.primary}
+        />
+    </View>
     );
   };
 
   // Update the renderCalendarSection
   const renderCalendarSection = () => {
+    const threeMonthsFromNow = new Date();
+    threeMonthsFromNow.setMonth(threeMonthsFromNow.getMonth() + 3);
+    const nextDate = new Date(dateRange);
+    nextDate.setDate(nextDate.getDate() + 1);
+    const isNextDisabled = nextDate > threeMonthsFromNow;
+
     return (
       <View style={styles.dateSection}>
         <TouchableOpacity
@@ -259,7 +322,7 @@ export default function HomeScreen({ navigation }) {
           </View>
           <View style={styles.weekNavigation}>
             <TouchableOpacity
-              style={styles.navigationButton}
+              style={[styles.navigationButton, { opacity: 1 }]}
               onPress={() => handleWeekChange('prev')}
             >
               <MaterialCommunityIcons
@@ -272,8 +335,9 @@ export default function HomeScreen({ navigation }) {
               {getSelectedDateLabel()}
             </Text>
             <TouchableOpacity
-              style={styles.navigationButton}
-              onPress={() => handleWeekChange('next')}
+              style={[styles.navigationButton, { opacity: isNextDisabled ? 0.5 : 1 }]}
+              onPress={() => !isNextDisabled && handleWeekChange('next')}
+              disabled={isNextDisabled}
             >
               <MaterialCommunityIcons
                 name="chevron-right"
@@ -296,13 +360,17 @@ export default function HomeScreen({ navigation }) {
               style={[
                 styles.dateItem,
                 item.isSelected && styles.selectedDateItem,
-                item.isToday && styles.todayDateItem
+                item.isToday && styles.todayDateItem,
+                item.isBeyondThreeMonths && { opacity: 0.5 }
               ]}
               onPress={() => {
-                const newDate = new Date(dateRange);
-                newDate.setDate(item.date);
-                setDateRange(newDate);
+                if (!item.isBeyondThreeMonths) {
+                  const newDate = new Date(dateRange);
+                  newDate.setDate(item.date);
+                 dispatch(setDateRange(newDate));
+                }
               }}
+              disabled={item.isBeyondThreeMonths}
             >
               <Text style={[
                 styles.dayText,
@@ -319,12 +387,12 @@ export default function HomeScreen({ navigation }) {
                 <Text style={[
                   styles.dateNumberText,
                   (item.isSelected || item.isToday) && styles.selectedDateNumberText,
-                  item.isToday&&!item.isSelected && styles.todayDateNumberText
+                  item.isToday && !item.isSelected && styles.todayDateNumberText
                 ]}>
                   {item.date}
                 </Text>
               </View>
-              {item.hasAppointments && (
+              {item.hasAppointments && !item.isBeyondThreeMonths && (
                 <View style={[
                   styles.appointmentDot,
                   (item.isSelected || item.isToday) && styles.selectedAppointmentDot
@@ -340,6 +408,7 @@ export default function HomeScreen({ navigation }) {
           onConfirm={handleConfirm}
           onCancel={hideDatePicker}
           date={dateRange}
+          maximumDate={moment().add(3, 'months').toDate()}
         />
       </View>
     );
@@ -347,16 +416,18 @@ export default function HomeScreen({ navigation }) {
 
   const selectedDateString = moment(dateRange).format('DD-MM-YYYY');
 
-  const filteredOutPatients = OutPatienstData.filter(appointment =>
+  const filteredOutPatients = OutPatienstData.sort((a, b) => a.Appointment_Time.localeCompare(b.Appointment_Time)).filter(appointment =>
     appointment.Appointment_Date === selectedDateString && appointment.PATIENT_NAME.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const filteredInPatients = inPatients.filter(patient =>
+  const filteredInPatients = INPatientsData.filter(patient =>
     patient.AdmissionDate.replaceAll('/', '-') === selectedDateString && patient.PatientName.toLowerCase().includes(searchQuery.toLowerCase())
   );
-  const filteredOtPatients = otPatients.filter(patient =>
+  const filteredOtPatients = OTPatientsData.filter(patient =>
     patient.SurgeryDate === selectedDateString
   );
+
+  // console.log(inPatients)
 
   // Update the Upcoming section to include inPatients and otPatients
   const renderUpcomingAppointments = () => {
@@ -371,7 +442,7 @@ export default function HomeScreen({ navigation }) {
               <View style={styles.appointmentLeft}>
                 <Text style={styles.appointmentName}>{appointment.PATIENT_NAME}</Text>
                 <Text style={styles.appointmentDetails}>
-                  {appointment.AGE} Age | {appointment.Sex} | {appointment.CASE_TYPE}
+                  {appointment.AGE} Years | {appointment.Sex} | {appointment.CASE_TYPE}
                 </Text>
               </View>
               <View style={styles.appointmentRight}>
@@ -382,12 +453,16 @@ export default function HomeScreen({ navigation }) {
                       <Text style={styles.videoButtonText}>Video Consult</Text>
                     </TouchableOpacity>
                   ) : (
-                    <Text style={styles.eventType}>{appointment.CASE_TYPE}</Text>
+                    <Text style={styles.eventType}>OP Consultation</Text>
                   )}
                 </View>
                 <View style={styles.scheduleTag}>
                   <MaterialCommunityIcons name="clock-outline" size={14} color="#666" />
-                  <Text style={styles.scheduleText}>Scheduled: {appointment.Appointment_Time}</Text>
+                  {/* <Text style={styles.scheduleText}>Scheduled: {appointment.Appointment_Time}</Text> */}
+                  <View style={styles.scheduleTextContainer}>  
+                    <Text style={[styles.scheduleText,{color:'#0000ff'}]}>Scheduled:</Text>
+                    <Text style={styles.scheduleText}>{appointment.Appointment_Time}</Text>
+                  </View>
                 </View>
               </View>
             </Card.Content>
@@ -401,14 +476,15 @@ export default function HomeScreen({ navigation }) {
               <View style={styles.appointmentLeft}>
                 <Text style={styles.appointmentName}>{patient.PatientName}</Text>
                 <Text style={styles.appointmentDetails}>
-                  {patient.Age} Age | {patient.Gender} | {patient.CaseType}
+                  {patient.Age} Years | {patient.Gender} | {patient.CaseType}
                 </Text>
               </View>
               <View style={styles.appointmentRight}>
-                <View style={styles.scheduleTag}>
+                <Text style={styles.eventType}>IP Rounds</Text>
+                {/* <View style={styles.scheduleTag}>
                   <MaterialCommunityIcons name="calendar" size={14} color="#666" />
                   <Text style={styles.scheduleText}>Admitted: {patient.AdmissionDate}</Text>
-                </View>
+                </View> */}
               </View>
             </Card.Content>
           </Card>
@@ -419,15 +495,21 @@ export default function HomeScreen({ navigation }) {
           <Card key={`ot-${index}`} style={styles.appointmentCard}>
             <Card.Content style={styles.appointmentContent}>
               <View style={styles.appointmentLeft}>
-                <Text style={styles.appointmentName}>{patient.PatientName}</Text>
+                <Text style={styles.appointmentName}>{patient.PATIENT_NAME}</Text>
                 <Text style={styles.appointmentDetails}>
-                  {patient.Age} Age | {patient.Gender} | {patient.CaseType}
+                  {patient.AGE} | {patient.SEX} | {patient.SURGERY}
                 </Text>
               </View>
               <View style={styles.appointmentRight}>
+                <Text style={styles.eventType}>Surgery</Text>
+
                 <View style={styles.scheduleTag}>
-                  <MaterialCommunityIcons name="calendar" size={14} color="#666" />
-                  <Text style={styles.scheduleText}>Surgery: {patient.SurgeryDate}</Text>
+                  <MaterialCommunityIcons name="clock-outline" size={14} color="#666" />
+
+                  <View style={styles.scheduleTextContainer}>  
+                    <Text style={[styles.scheduleText,{color:'#0000ff'}]}>Scheduled:</Text>
+                    <Text style={styles.scheduleText}>7.00 PM</Text>
+                  </View>
                 </View>
               </View>
             </Card.Content>
@@ -436,7 +518,11 @@ export default function HomeScreen({ navigation }) {
       </View>
     );
   };
-
+  useEffect(() => {
+    (user['Doctor Id'], {
+      ...user
+    })
+  })
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -460,14 +546,49 @@ export default function HomeScreen({ navigation }) {
           <View style={styles.logoContainer}>
             <Image source={require('../../assets/images/logo.png')} style={styles.logo} />
           </View>
-          <TouchableOpacity>
+
+          <Menu
+            visible={menuVisible}
+            onDismiss={() => setMenuVisible(false)}
+            anchor={
+              <TouchableOpacity
+                style={styles.locationSelector}
+                onPress={() => setMenuVisible(true)}
+              >
+                <MaterialCommunityIcons name="map-marker" size={20} color="#B4236C" />
+                <Text style={styles.locationText} numberOfLines={1} ellipsizeMode="tail">{selectedLocation}</Text>
+                <MaterialCommunityIcons name="chevron-down" size={20} color="#666" />
+              </TouchableOpacity>
+            }
+            style={styles.menu}
+          >
+            {user.DocBranch.map((location, index) => (
+              <React.Fragment key={index}>
+                <Menu.Item
+                  onPress={() => {
+                    setSelectedLocation(location.BranchName);
+                    setMenuVisible(false);
+                    mixpanel.track('Location Selected', { location, user })
+                  }}
+                  title={location.BranchName}
+                  titleStyle={[
+                    styles.menuItemText,
+                    selectedLocation === location.BranchName && styles.selectedMenuItemText
+                  ]}
+                />
+                {index < user.DocBranch.length - 1 && <Divider />}
+              </React.Fragment>
+            ))}
+          </Menu>
+
+          <TouchableOpacity onPress={() => mixpanel.track('Bell Clicked', user)}>
             <MaterialCommunityIcons name="bell-outline" size={24} color="#666" />
           </TouchableOpacity>
         </View>
 
         {/* Welcome Section */}
         <View style={styles.welcomeSection}>
-          <Text style={styles.welcomeText}>Welcome {user['Doctor Name']}</Text>
+          <Text style={styles.welcomeText}>Welcome {user.DoctorName}</Text>
           {/* <Text style={styles.subText}>Let's take care of your patient's</Text> */}
         </View>
 
@@ -476,6 +597,7 @@ export default function HomeScreen({ navigation }) {
           <Searchbar
             placeholder="Search patients, appointments..."
             onChangeText={setSearchQuery}
+            onSubmitEditing={() => mixpanel.track('Search Bar', { searchQuery, user })}
             value={searchQuery}
             style={styles.searchBar}
             inputStyle={styles.searchInput}
@@ -499,7 +621,7 @@ export default function HomeScreen({ navigation }) {
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Upcoming</Text>
             {filteredInPatients.length > 0 || filteredOutPatients.length > 0 || filteredOtPatients.length > 0 ?
-              <TouchableOpacity onPress={() => { navigation.navigate('Schedule') }}>
+              <TouchableOpacity onPress={() => { [navigation.navigate('Schedule'), mixpanel.track('View All Schedule ', user)] }}>
                 <Text style={styles.viewAllText}>View All</Text>
               </TouchableOpacity> : ''}
           </View>
@@ -507,7 +629,7 @@ export default function HomeScreen({ navigation }) {
             renderUpcomingAppointments() : <View style={styles.noAppoinments}>
               <Image source={require('../../assets/images/noAppoinments.png')} />
               <Text style={styles.noAppoinmentsHeader}>Not Schedule Yet</Text>
-              <Text style={styles.noAppoinmentsText}>You don't have any appoinments scheduled {'\n'} for {moment(dateRange).format('MMMM DD, YYYY')}</Text>
+              <Text style={styles.noAppoinmentsText}>You don't have any appoinments scheduled {'\n'} for {moment(dateRange).format('MMMM DD, YYYY') === moment().format('MMMM DD, YYYY') ? 'Today' : moment(dateRange).format('MMMM DD, YYYY')}</Text>
             </View>
           }
         </View>
@@ -639,9 +761,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: width * 0.04,
     marginTop: height * 0.01,
   },
-  lastCardContainer:{
-    width:'100%',
-    justifyContent:'flex-start'  },
+  lastCardContainer: {
+    width: '100%',
+    justifyContent: 'flex-start'
+  },
   statCard: {
     width: width * 0.31,
     padding: width * 0.025,
@@ -782,8 +905,8 @@ const styles = StyleSheet.create({
   },
   progressContainer: {
 
-    width:width*1,
-    paddingHorizontal:width*0.04,
+    width: width * 1,
+    paddingHorizontal: width * 0.04,
 
 
   },
@@ -797,7 +920,7 @@ const styles = StyleSheet.create({
     fontSize: width * 0.035,
     fontFamily: 'Poppins-Regular',
     color: COLORS.text.secondary,
-    textAlign:'right'
+    textAlign: 'right'
   },
   progressCount: {
     fontSize: width * 0.035,
@@ -809,9 +932,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#F0F0F0',
     borderRadius: 6,
     overflow: 'hidden',
-display:'flex',
-flexDirection:'column',
-alignItems:'center'
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center'
   },
   progressBar: {
     height: '100%',
@@ -843,7 +966,7 @@ alignItems:'center'
     position: 'relative',
   },
   selectedDateItem: {
-    backgroundColor:'#fff',
+    backgroundColor: '#fff',
   },
   todayDateItem: {
     backgroundColor: '#fff',
@@ -877,7 +1000,7 @@ alignItems:'center'
     borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth:1,
+    borderWidth: 1,
     marginBottom: height * 0.005,
     borderColor: theme.colors.primary,
   },
@@ -893,8 +1016,8 @@ alignItems:'center'
     marginTop: height * 0.005
 
   },
-  todayDateNumberText:{
-    color:'#666'
+  todayDateNumberText: {
+    color: '#666'
   },
   appointmentDot: {
     width: 5,
@@ -938,9 +1061,43 @@ alignItems:'center'
     color: COLORS.text.secondary,
     textAlign: 'center'
   },
-  cardProgressContainer:{
-    width:width*0.45,
-    
-  }
+  cardProgressContainer: {
+    width: width * 0.45,
 
+  },
+  locationSelector: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f7f7f7',
+    paddingHorizontal: width * 0.03,
+    paddingVertical: height * 0.008,
+    borderRadius: width * 0.02,
+    gap: width * 0.01,
+    width: width * 0.5
+  },
+  locationText: {
+    fontFamily: 'Poppins-Medium',
+    fontSize: Math.min(width * 0.032, 14),
+    color: '#333',
+    width: width * 0.31,
+    textAlign: 'center',
+
+
+  },
+  menu: {
+    marginTop: height * 0.1,
+  },
+  menuItemText: {
+    fontFamily: 'Poppins-Regular',
+    fontSize: Math.min(width * 0.032, 14),
+    color: '#333',
+  },
+  selectedMenuItemText: {
+    color: theme.colors.primary,
+    fontFamily: 'Poppins-Medium',
+  },
+  scheduleTextContainer: {
+    flexDirection: 'row',
+    gap: 3
+  }
 }); 

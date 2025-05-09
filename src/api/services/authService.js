@@ -51,7 +51,6 @@ export const authService = {
           mobileno:credentials.mobileno
         })
       });
-
       // Check if the response is JSON
       const contentType = response.headers.get('content-type');
       let data;
@@ -62,9 +61,10 @@ export const authService = {
         data = JSON.parse(text);
         // throw new Error('Unexpected response format');
       }
-      if (!data.Message?.includes('Success')) {
-        throw new Error(data.Message || 'Invalid credentials');
-      }
+      console.log(data)
+      // if (!data.Message?.includes('Success')) {
+      //   throw new Error(data.Message || 'Invalid credentials');
+      // }
 
       // If login successful, store user data
       await AsyncStorage.setItem('user', JSON.stringify(data));

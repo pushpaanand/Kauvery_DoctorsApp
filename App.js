@@ -1,5 +1,5 @@
 import 'react-native-gesture-handler';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { Provider as PaperProvider, Portal } from 'react-native-paper';
@@ -12,6 +12,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useFonts } from 'expo-font';
 import { Provider } from 'react-redux';
 import { store } from './src/store/store';
+import mixpanel, { identifyUser, trackEvent } from './src/utils/mixpanel';
 
 // Auth Screens
 import LoginScreen from './src/screens/LoginScreen';
@@ -38,6 +39,7 @@ import ReviewerDashboardScreen from './src/screens/reviewer/ReviewerDashboardScr
 // Approver Screens
 import ApproverDashboardScreen from './src/screens/approver/ApproverDashboardScreen';
 import AppNavigator from './src/navigation/AppNavigator';
+import { User } from './src/utils/constants';
 
 const Stack = createStackNavigator();
 
@@ -71,6 +73,13 @@ export default function App() {
     'Poppins-SemiBold': require('./src/assets/fonts/Poppins/Poppins-SemiBold.ttf'),
     'Poppins-Bold': require('./src/assets/fonts/Poppins/Poppins-Bold.ttf'),
   });
+
+  useEffect(() => {
+    if (fontsLoaded) {
+      // Track app launch only after fonts are loaded
+      mixpanel.track('App Launched',User);
+    }
+  }, [fontsLoaded]);
 
   if (!fontsLoaded) {
     return null;
@@ -234,3 +243,4 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
 });
+
